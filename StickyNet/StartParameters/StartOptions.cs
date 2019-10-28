@@ -8,7 +8,7 @@ namespace StickyNet.StartParameters
         [Option('P', "Port", HelpText = "The port to run the listener on", Required = true)]
         public int Port { get; private set; }
 
-        [Option('O', "Output", HelpText = "The path to log requests to")]
+        [Option('O', "Output", HelpText = "The path to log requests to", Default = "Output.log")]
         public string OutputPath { get; private set; }
     }
 }
