@@ -2,24 +2,29 @@
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
+using StickyNet.Listener.Server;
 
-namespace StickyNet.Listener.Servers
+namespace StickyNet.Tcp
 {
-    public class TcpStickyNet : TcpServer
+    public class StickyTcpServer : TcpServer, IStickyServer
     {
-        private readonly ILogger<TcpStickyNet> Logger;
+        private readonly ILogger Logger;
 
         public TcpProtocol Protocol { get; }
 
-        public TcpStickyNet(IPAddress address, int port, TcpProtocol protocol,
-            ILogger<TcpStickyNet> logger)
+        public EndPoint EndPoint => Endpoint;
+
+        public int Port => (EndPoint as IPEndPoint).Port;
+
+        public StickyTcpServer(IPAddress address, int port, TcpProtocol protocol,
+            ILogger logger)
             : base(address, port)
         {
             Protocol = protocol;
             Logger = logger;
         }
 
-        protected async override void OnConnected(TcpSession session)
+        protected override async void OnConnected(TcpSession session)
         {
             var remoteEndPoint = session.Socket.RemoteEndPoint as IPEndPoint;
             Logger.LogInformation($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
@@ -40,5 +45,8 @@ namespace StickyNet.Listener.Servers
 
         protected override void OnError(SocketError error)
             => Logger.LogWarning($"An error occured: {error}");
+
+        public override bool Start() => base.Start();
+        public override bool Stop() => base.Stop();
     }
 }

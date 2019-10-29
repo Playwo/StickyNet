@@ -1,11 +1,11 @@
 ﻿using System.Threading.Tasks;
 using NetCoreServer;
 
-namespace StickyNet.Listener.Servers
+namespace StickyNet.Tcp
 {
     public class TcpProtocol
     {
-        public virtual string Name => "None"; 
+        public virtual string Name => "None";
 
         public virtual Task<bool> PerformHandshakeAsync(TcpServer server, TcpSession session)
         {

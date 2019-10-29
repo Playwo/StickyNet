@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "StickyNet": {
+      "commandName": "Project",
+      "commandLineArgs": "run"
+    }
+  }
+}

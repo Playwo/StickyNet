@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using CommandLine;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using StickyNet.Listener.Servers;
+using StickyNet.Server;
+using StickyNet.Service;
 using StickyNet.StartParameters;
 
 namespace StickyNet
@@ -25,13 +25,13 @@ namespace StickyNet
         private ILoggerFactory MakeLoggerFactory()
             => Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
             {
+                builder.SetMinimumLevel(LogLevel.Debug);
                 builder.ClearProviders();
                 builder.AddConsole();
             });
 
         public void Run(string[] args)
         {
-            Logger.LogDebug("Creating parser...");
             var parser = new Parser(x =>
             {
                 x.AutoHelp = true;
@@ -42,31 +42,80 @@ namespace StickyNet
                 x.HelpWriter = Console.Out;
                 x.IgnoreUnknownArguments = false;
             });
-            Logger.LogDebug("Parsing arguments...");
-            var result = parser.ParseArguments<ListenerOptions>(args)
-                .WithParsed(opt => RunListenerAsync(opt).GetAwaiter().GetResult());
+
+            var result = parser.ParseArguments<RunOptions, CreateOptions, DeleteOptions>(args)
+                .WithParsed<RunOptions>(opt => RunStickyNetAsync(opt).GetAwaiter().GetResult())
+                .WithParsed<CreateOptions>(opt => CreateStickyNetAsync(opt).GetAwaiter().GetResult())
+                .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult());
         }
 
-        private async Task RunListenerAsync(ListenerOptions options)
+        private async Task DeleteStickyNetAsync(DeleteOptions options)
         {
-            var logger = LoggerFactory
-                .AddFile(options.OutputPath)
-                .CreateLogger<TcpStickyNet>();
+            Logger.LogInformation($"Deleting StickyNet from port {options.Port}...");
 
-            Logger.LogInformation("Retrieving local IP Address...");
+            var service = new ConfigService();
+            await service.InitializeAsync();
 
-            var host = await Dns.GetHostEntryAsync(Dns.GetHostName());
-            var ip = host.AddressList.First(x => x.AddressFamily == AddressFamily.InterNetwork);
+            var result = await service.RemoveStickyNetAsync(options.Port);
 
-            Logger.LogInformation("Creating TCPStickyNet...");
+            if (!result.Item1)
+            {
+                Logger.LogError(result.Item2);
+            }
+            else
+            {
+                Logger.LogInformation($"Successfully removed StickyNet from port {options.Port}");
+            }
+        }
 
-            var listener = new TcpStickyNet(ip, options.Port, new TcpProtocol(), logger);
+        private async Task CreateStickyNetAsync(CreateOptions options)
+        {
+            Logger.LogInformation($"Creating StickyNet on port {options.Port} imitating {options.Protocol}...");
 
-            Logger.LogInformation("Starting TCPStickyNet...");
+            var service = new ConfigService();
+            await service.InitializeAsync();
 
-            listener.Start();
+            var cfg = new StickyServerConfig(options.Port, options.Protocol, options.OutputPath);
 
-            await Task.Delay(-1);
+            var result = await service.AddStickyNetAsync(cfg);
+
+            if (!result.Item1)
+            {
+                Logger.LogError(result.Item2);
+            }
+            else
+            {
+                Logger.LogInformation($"Successfully added a StickyNet to port {cfg.Port} imitating {cfg.Protocol} and logging to {cfg.OutputPath}");
+            }
+        }
+
+        private async Task RunStickyNetAsync(RunOptions options)
+        {
+            var hostBuilder = Host.CreateDefaultBuilder()
+                .ConfigureServices(async (hostContext, services) =>
+                {
+                    services.AddHostedService<Listener.StickyNet>();
+                    services.AddStickyServices();
+                    await services.InitializeStickyServicesAsync();
+                })
+                .ConfigureLogging(logging =>
+                {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        logging.AddEventLog();
+                    }
+
+                    logging.SetMinimumLevel(options.LogLevel);
+                    logging.AddConsole();
+                    logging.AddDebug();
+                })
+                .UseConsoleLifetime();
+
+            var host = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? hostBuilder.UseSystemd().Build()
+                : hostBuilder.UseWindowsService().Build();
+
+            await host.RunAsync();
         }
     }
 }
