@@ -1,7 +1,7 @@
 ﻿using CommandLine;
 using Microsoft.Extensions.Logging;
 
-namespace StickyNet.StartParameters
+namespace StickyNet.Arguments
 {
     [Verb("run", HelpText = "Run StickyNet on all configured Ports")]
     public class RunOptions

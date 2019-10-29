@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using NetCoreServer;
 
-namespace StickyNet.Listener.Server.Udp
+namespace StickyNet.Server.Udp
 {
     public class StickyUpdServer : UdpServer, IStickyServer
     {

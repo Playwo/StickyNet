@@ -6,12 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using StickyNet.Listener.Server;
 using StickyNet.Server;
+using StickyNet.Server.Tcp;
 using StickyNet.Service;
-using StickyNet.Tcp;
 
-namespace StickyNet.Listener
+namespace StickyNet
 {
     public class StickyNetWorker : BackgroundService
     {
@@ -38,7 +37,7 @@ namespace StickyNet.Listener
 
             IStickyServer server = config.Protocol switch
             {
-                Protocol.None => new StickyTcpServer(ip, config.Port, new TcpProtocol(), LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
+                Protocol.None => new StickyTcpServer(ip, config.Port, new EmptyTcpProtocol(), LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
                 Protocol.FTP => throw new NotImplementedException(),
                 Protocol.SSH => throw new NotImplementedException(),
                 Protocol.Telnet => throw new NotImplementedException(),

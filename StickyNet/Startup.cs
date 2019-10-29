@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StickyNet.Server;
 using StickyNet.Service;
-using StickyNet.StartParameters;
+using StickyNet.Arguments;
 
 namespace StickyNet
 {
@@ -94,7 +94,7 @@ namespace StickyNet
             var hostBuilder = Host.CreateDefaultBuilder()
                 .ConfigureServices(async (hostContext, services) =>
                 {
-                    services.AddHostedService<Listener.StickyNetWorker>();
+                    services.AddHostedService<StickyNetWorker>();
                     services.AddStickyServices();
                     await services.InitializeStickyServicesAsync();
                 })

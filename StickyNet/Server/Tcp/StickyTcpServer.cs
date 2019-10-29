@@ -2,21 +2,20 @@
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
-using StickyNet.Listener.Server;
 
-namespace StickyNet.Tcp
+namespace StickyNet.Server.Tcp
 {
     public class StickyTcpServer : TcpServer, IStickyServer
     {
         private readonly ILogger Logger;
 
-        public TcpProtocol Protocol { get; }
+        public ITcpProtocol Protocol { get; }
 
         public EndPoint EndPoint => Endpoint;
 
         public int Port => (EndPoint as IPEndPoint).Port;
 
-        public StickyTcpServer(IPAddress address, int port, TcpProtocol protocol,
+        public StickyTcpServer(IPAddress address, int port, ITcpProtocol protocol,
             ILogger logger)
             : base(address, port)
         {

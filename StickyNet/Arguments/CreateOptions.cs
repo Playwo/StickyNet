@@ -1,7 +1,7 @@
 ﻿using CommandLine;
 using StickyNet.Server;
 
-namespace StickyNet.StartParameters
+namespace StickyNet.Arguments
 {
     [Verb("create", HelpText = "Creates a new service which automatically starts the StickyNet on startup")]
     public class CreateOptions

@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 
-namespace StickyNet.StartParameters
+namespace StickyNet.Arguments
 {
     [Verb("delete", HelpText = "Removes a StickyNet from the given port")]
     public class DeleteOptions
