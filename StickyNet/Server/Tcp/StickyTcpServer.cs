@@ -15,8 +15,8 @@ namespace StickyNet.Server.Tcp
 
         public int Port => (EndPoint as IPEndPoint).Port;
 
-        public StickyTcpServer(IPAddress address, int port, ITcpProtocol protocol,
-            ILogger logger)
+        public StickyTcpServer(IPAddress address, int port, 
+            ITcpProtocol protocol, ILogger logger)
             : base(address, port)
         {
             Protocol = protocol;
