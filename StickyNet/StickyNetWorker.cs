@@ -13,15 +13,15 @@ using StickyNet.Tcp;
 
 namespace StickyNet.Listener
 {
-    public class StickyNet : BackgroundService
+    public class StickyNetWorker : BackgroundService
     {
-        private readonly ILogger<StickyNet> Logger;
+        private readonly ILogger<StickyNetWorker> Logger;
         private readonly ConfigService Configuration;
         private readonly ILoggerFactory LoggerFactory;
 
         public List<IStickyServer> Servers { get; }
 
-        public StickyNet(ConfigService configuration, ILogger<StickyNet> logger, ILoggerFactory loggerFactory)
+        public StickyNetWorker(ConfigService configuration, ILogger<StickyNetWorker> logger, ILoggerFactory loggerFactory)
         {
             Logger = logger;
             Configuration = configuration;

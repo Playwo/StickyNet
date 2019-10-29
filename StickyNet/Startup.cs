@@ -94,7 +94,7 @@ namespace StickyNet
             var hostBuilder = Host.CreateDefaultBuilder()
                 .ConfigureServices(async (hostContext, services) =>
                 {
-                    services.AddHostedService<Listener.StickyNet>();
+                    services.AddHostedService<Listener.StickyNetWorker>();
                     services.AddStickyServices();
                     await services.InitializeStickyServicesAsync();
                 })
