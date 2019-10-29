@@ -37,12 +37,13 @@ namespace StickyNet
 
             IStickyServer server = config.Protocol switch
             {
-                Protocol.None => new StickyTcpServer(ip, config.Port, new EmptyTcpProtocol(), LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
+                Protocol.None => new StickyTcpServer(ip, new EmptyTcpProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
                 Protocol.FTP => throw new NotImplementedException(),
                 Protocol.SSH => throw new NotImplementedException(),
                 Protocol.Telnet => throw new NotImplementedException(),
                 _ => null
             };
+
             Servers.Add(server);
             server.Start();
         }

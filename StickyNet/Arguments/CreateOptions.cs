@@ -12,7 +12,7 @@ namespace StickyNet.Arguments
         [Option('i', "imitate", HelpText = "The protocol the StickyNet imitates", Default = Protocol.None)]
         public Protocol Protocol { get; set; }
 
-        [Option('o', "output", HelpText = "The path to log requests to", Default = "Output.log")]
+        [Option('o', "output", HelpText = "The path to log requests to", Default = null)]
         public string OutputPath { get; set; }
     }
 }

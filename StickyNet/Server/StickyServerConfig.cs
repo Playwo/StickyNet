@@ -5,6 +5,7 @@
         public int Port { get; set; }
         public Protocol Protocol { get; set; }
         public string OutputPath { get; set; }
+        public bool EnableOutput => OutputPath != null;
 
         public StickyServerConfig(int port, Protocol protocol, string outputPath)
         {
