@@ -111,6 +111,8 @@ namespace StickyNet
                     ipReports.Add(new IpReport(attempt.Key.ToString(), reason));
                 }
 
+                server.ConnectionAttempts.Clear();
+
                 var parameters = new Dictionary<string, object>()
                 {
                     ["token"] = server.Config.ReportToken,
@@ -124,8 +126,6 @@ namespace StickyNet
                 {
                     Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
                 }
-
-                server.ConnectionAttempts.Clear();
             }
         }
     }
