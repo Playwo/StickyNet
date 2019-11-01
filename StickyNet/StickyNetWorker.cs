@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StickyNet.Server;
 using StickyNet.Server.Tcp;
+using StickyNet.Server.Tcp.Protocols;
 using StickyNet.Service;
 
 namespace StickyNet
@@ -38,7 +39,7 @@ namespace StickyNet
             IStickyServer server = config.Protocol switch
             {
                 Protocol.None => new StickyTcpServer(ip, new EmptyTcpProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
-                Protocol.FTP => throw new NotImplementedException(),
+                Protocol.FTP => new StickyTcpServer(ip, new FtpProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
                 Protocol.SSH => throw new NotImplementedException(),
                 Protocol.Telnet => throw new NotImplementedException(),
                 _ => null
