@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
+using StickyNet.Report;
 
 namespace StickyNet.Server.Tcp
 {
@@ -12,20 +15,26 @@ namespace StickyNet.Server.Tcp
     {
         private readonly ILogger Logger;
 
+        public StickyServerConfig Config { get; }
         public ITcpProtocol Protocol { get; }
-        public string OutputPath { get; }
-        public bool EnableOutput { get; }
 
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
 
+        public ConcurrentDictionary<IPAddress, RequestList> ConnectionAttempts { get; }
+
+
         public StickyTcpServer(IPAddress address, ITcpProtocol protocol, StickyServerConfig config, ILogger logger)
             : base(address, config.Port)
         {
-            OutputPath = config.OutputPath;
-            EnableOutput = config.EnableOutput;
+            Config = config;
             Protocol = protocol;
             Logger = logger;
+
+            if (Config.EnableReporting)
+            {
+                ConnectionAttempts = new ConcurrentDictionary<IPAddress, RequestList>();
+            }
         }
 
         protected override async void OnConnected(TcpSession session)
@@ -35,10 +44,18 @@ namespace StickyNet.Server.Tcp
                 var remoteEndPoint = session.Socket.RemoteEndPoint as IPEndPoint;
                 Logger.LogInformation($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
 
-                if (EnableOutput)
+
+                var attempt = new ConnectionAttempt(remoteEndPoint.Address, DateTime.UtcNow, Port);
+
+                if (Config.EnableOutput)
                 {
-                    var attempt = new ConnectionAttempt(remoteEndPoint.Address, DateTime.UtcNow, Port);
-                    await File.AppendAllTextAsync(OutputPath, JsonSerializer.Serialize(attempt) + "\n");
+                    await File.AppendAllTextAsync(Config.OutputPath, JsonSerializer.Serialize(attempt) + "\n");
+                }
+                if (Config.EnableReporting)
+                {
+                    ConnectionAttempts.AddOrUpdate(remoteEndPoint.Address,
+                        ip => new RequestList().AddConnection(attempt),
+                        (ip, list) => list.AddConnection(attempt));
                 }
 
                 await Protocol.PerformHandshakeAsync(this, session);

@@ -1,4 +1,6 @@
-﻿namespace StickyNet.Server
+﻿using System;
+
+namespace StickyNet.Server
 {
     public class StickyServerConfig
     {
@@ -7,11 +9,17 @@
         public string OutputPath { get; set; }
         public bool EnableOutput => OutputPath != null;
 
-        public StickyServerConfig(int port, Protocol protocol, string outputPath)
+        public Uri ReportServer { get; set; }
+        public string ReportToken { get; set; }
+        public bool EnableReporting => ReportServer != null;
+
+        public StickyServerConfig(int port, Protocol protocol, string outputPath, Uri reportServer, string reportToken)
         {
             Port = port;
             Protocol = protocol;
             OutputPath = outputPath;
+            ReportServer = reportServer;
+            ReportToken = reportToken;
         }
 
         public StickyServerConfig()

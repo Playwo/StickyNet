@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
+using StickyNet.Report;
 
 namespace StickyNet.Server.Udp
 {
@@ -12,18 +15,20 @@ namespace StickyNet.Server.Udp
     {
         private readonly ILogger Logger;
 
+        public StickyServerConfig Config { get; }
         public IUdpProtocol Protocol { get; }
-        public string OutputPath { get; }
-        public bool EnableOutput { get; }
 
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
 
+        public ConcurrentDictionary<IPAddress, RequestList> ConnectionAttempts { get; }
+
         public StickyUpdServer(IPAddress address, StickyServerConfig config, IUdpProtocol protocol, ILogger logger)
             : base(address, config.Port)
         {
-            OutputPath = config.OutputPath;
-            EnableOutput = config.EnableOutput;
+            ConnectionAttempts = new ConcurrentDictionary<IPAddress, RequestList>();
+
+            Config = config;
             Protocol = protocol;
             Logger = logger;
         }
@@ -35,10 +40,17 @@ namespace StickyNet.Server.Udp
                 var remoteEndPoint = endpoint as IPEndPoint;
                 Logger.LogInformation($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
 
-                if (EnableOutput)
+                var attempt = new ConnectionAttempt(remoteEndPoint.Address, DateTime.UtcNow, Port);
+
+                if (Config.EnableOutput)
                 {
-                    var attempt = new ConnectionAttempt(remoteEndPoint.Address, DateTime.UtcNow, Port);
-                    await File.AppendAllTextAsync(OutputPath, JsonSerializer.Serialize(attempt) + "\n");
+                    await File.AppendAllTextAsync(Config.OutputPath, JsonSerializer.Serialize(attempt) + "\n");
+                }
+                if (Config.EnableReporting)
+                {
+                    ConnectionAttempts.AddOrUpdate(remoteEndPoint.Address,
+                        ip => new RequestList().AddConnection(attempt),
+                        (ip, list) => list.AddConnection(attempt));
                 }
 
                 await Protocol.PerformHandshakeAsync(endpoint);

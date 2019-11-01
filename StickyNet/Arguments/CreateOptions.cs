@@ -14,5 +14,11 @@ namespace StickyNet.Arguments
 
         [Option('o', "output", HelpText = "The path to log requests to", Default = null)]
         public string OutputPath { get; set; }
+
+        [Option('r', "reportserver", HelpText = "The ip and port of the server to report the connection attempts to", Default = null)]
+        public string ReportServer { get; set; }
+
+        [Option('t', "reporttoken", HelpText = "The token to use to authenticate on the reportserver")]
+        public string ReportToken { get; set; }
     }
 }

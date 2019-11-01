@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using StickyNet.Server;
 using StickyNet.Service;
 using StickyNet.Arguments;
+using System.Net.Http;
+using System.Net;
 
 namespace StickyNet
 {
@@ -47,6 +49,9 @@ namespace StickyNet
                 .WithParsed<RunOptions>(opt => RunStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<CreateOptions>(opt => CreateStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult());
+
+            Logger.LogInformation("Press a key to exit...");
+            Console.ReadKey();
         }
 
         private async Task DeleteStickyNetAsync(DeleteOptions options)
@@ -71,11 +76,29 @@ namespace StickyNet
         private async Task CreateStickyNetAsync(CreateOptions options)
         {
             Logger.LogInformation($"Creating StickyNet on port {options.Port} imitating {options.Protocol}...");
+           
+            if ((options.ReportToken != null && options.ReportServer == null) || (options.ReportToken == null && options.ReportServer != null))
+            {
+                Logger.LogError("You need to provide a reportserver and a reporttoken, not just one of them!");
+                return;
+            }
+
+            Uri url = null;
+
+            if (options.ReportServer != null && options.ReportToken != null)
+            {
+                if (!Uri.TryCreate(string.Format("http://{0}", options.ReportServer), UriKind.Absolute, out url) || !IPAddress.TryParse(url.Host, out _))
+                {
+                    Logger.LogError("The Report Server could not be parsed! Please use the following format : ipv4:port");
+                    return;
+                }
+            }
+
 
             var service = new ConfigService();
             await service.InitializeAsync();
 
-            var cfg = new StickyServerConfig(options.Port, options.Protocol, options.OutputPath);
+            var cfg = new StickyServerConfig(options.Port, options.Protocol, options.OutputPath, url, options.ReportToken);
 
             var result = await service.AddStickyNetAsync(cfg);
 
@@ -94,6 +117,7 @@ namespace StickyNet
             var hostBuilder = Host.CreateDefaultBuilder()
                 .ConfigureServices(async (hostContext, services) =>
                 {
+                    services.AddSingleton<HttpClient>();
                     services.AddHostedService<StickyNetWorker>();
                     services.AddStickyServices();
                     await services.InitializeStickyServicesAsync();
