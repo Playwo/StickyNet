@@ -91,6 +91,8 @@ namespace StickyNet
             var server = Servers.Where(x => x.Port == config.Port).First();
             server.Stop();
 
+            Servers.RemoveAll(x => x.Port == config.Port);
+
             return Task.CompletedTask;
         }
 
