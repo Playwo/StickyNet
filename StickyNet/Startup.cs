@@ -9,7 +9,7 @@ using StickyNet.Server;
 using StickyNet.Service;
 using StickyNet.Arguments;
 using System.Net.Http;
-using System.Net;
+using System.Threading;
 
 namespace StickyNet
 {
@@ -30,6 +30,7 @@ namespace StickyNet
                 builder.SetMinimumLevel(LogLevel.Debug);
                 builder.ClearProviders();
                 builder.AddConsole();
+                builder.AddDebug();
             });
 
         public void Run(string[] args)
@@ -49,6 +50,8 @@ namespace StickyNet
                 .WithParsed<RunOptions>(opt => RunStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<CreateOptions>(opt => CreateStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult());
+
+            Thread.Sleep(100);
         }
 
         private async Task DeleteStickyNetAsync(DeleteOptions options)
@@ -84,9 +87,9 @@ namespace StickyNet
 
             if (options.ReportServer != null && options.ReportToken != null)
             {
-                if (!Uri.TryCreate(string.Format("http://{0}", options.ReportServer), UriKind.Absolute, out url) || !IPAddress.TryParse(url.Host, out _))
+                if (!Uri.TryCreate(options.ReportServer, UriKind.Absolute, out url))
                 {
-                    Logger.LogError("The Report Server could not be parsed! Please use the following format : ipv4:port");
+                    Logger.LogError("The Report Server could not be parsed! Please use the following format : http://$host:$port/$path");
                     return;
                 }
             }
