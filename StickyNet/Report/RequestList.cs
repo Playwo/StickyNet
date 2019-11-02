@@ -20,11 +20,11 @@ namespace StickyNet.Report
             get {
                 double highestCountPerMinute = 0;
 
-                foreach(var connectionTime in ConnectionTimes)
+                foreach (var connectionTime in ConnectionTimes)
                 {
                     int requestsInRange = 0;
 
-                    foreach(var otherConnectionTime in ConnectionTimes)
+                    foreach (var otherConnectionTime in ConnectionTimes)
                     {
                         var timeDiff = otherConnectionTime - connectionTime;
 
@@ -33,7 +33,7 @@ namespace StickyNet.Report
                             requestsInRange++;
                         }
                     }
-                    
+
                     if (requestsInRange > highestCountPerMinute)
                     {
                         highestCountPerMinute = requestsInRange;
@@ -55,11 +55,11 @@ namespace StickyNet.Report
             return this;
         }
 
-        public Reason CalculateReason() 
-            => MaximumRequestsPerMinute > 100 
-                ? Reason.Hacker 
-                : TotalRequests > 6 
-                    ? Reason.Spammer 
+        public Reason CalculateReason()
+            => MaximumRequestsPerMinute > 100
+                ? Reason.Hacker
+                : TotalRequests > 6
+                    ? Reason.Spammer
                     : Reason.Scanner;
 
     }

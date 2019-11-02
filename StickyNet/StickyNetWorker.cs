@@ -103,14 +103,14 @@ namespace StickyNet
 
             foreach (var server in Servers)
             {
-                if(!server.Config.EnableReporting)
+                if (!server.Config.EnableReporting)
                 {
                     continue;
                 }
 
                 var ipReports = new List<IpReport>();
 
-                foreach(var attempt in server.ConnectionAttempts)
+                foreach (var attempt in server.ConnectionAttempts)
                 {
                     var reason = attempt.Value.CalculateReason();
                     ipReports.Add(new IpReport(attempt.Key.ToString(), reason));

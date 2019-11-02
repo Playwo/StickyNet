@@ -1,5 +1,4 @@
 ﻿using CommandLine;
-using StickyNet.Server;
 
 namespace StickyNet.Arguments
 {

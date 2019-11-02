@@ -1,15 +1,15 @@
 ﻿using System;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using StickyNet.Arguments;
 using StickyNet.Server;
 using StickyNet.Service;
-using StickyNet.Arguments;
-using System.Net.Http;
-using System.Threading;
 
 namespace StickyNet
 {
@@ -95,7 +95,7 @@ namespace StickyNet
         private async Task CreateStickyNetAsync(CreateOptions options)
         {
             Logger.LogInformation($"Creating StickyNet on port {options.Port} imitating {options.Protocol}...");
-           
+
             if ((options.ReportToken != null && options.ReportServer == null) || (options.ReportToken == null && options.ReportServer != null))
             {
                 Logger.LogError("You need to provide a reportserver and a reporttoken, not just one of them!");
