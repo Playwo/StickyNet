@@ -49,9 +49,6 @@ namespace StickyNet
                 .WithParsed<RunOptions>(opt => RunStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<CreateOptions>(opt => CreateStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult());
-
-            Logger.LogInformation("Press a key to exit...");
-            Console.ReadKey();
         }
 
         private async Task DeleteStickyNetAsync(DeleteOptions options)
