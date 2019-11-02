@@ -38,6 +38,7 @@ namespace StickyNet
             Servers = new List<IStickyServer>();
             ReporterTimer = new System.Timers.Timer(600000); //10 Minutes
             ReporterTimer.Elapsed += ReporterTimer_Elapsed;
+            ReporterTimer.Start();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
