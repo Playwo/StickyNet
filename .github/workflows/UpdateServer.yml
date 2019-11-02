@@ -1,0 +1,29 @@
+name: UpdateServer
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.0.100
+    - name: SSH Commands
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          cd /root/StickySource/StickyNet
+          git pull
+          service stickynet stop
+          dotnet publish -c Release -o /root/StickyNet --self-contained --runtime linux-x64
+          chmod +x /root/StickyNet/StickyNet
+          service stickynet start
