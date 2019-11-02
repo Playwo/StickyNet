@@ -18,5 +18,8 @@ namespace StickyNet.Report
             Ip = ip;
             Reason = reason;
         }
+
+        public override string ToString()
+            => $"{Ip} [{Reason}]";
     }
 }

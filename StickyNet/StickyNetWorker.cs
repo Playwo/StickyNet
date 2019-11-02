@@ -122,10 +122,10 @@ namespace StickyNet
                 {
                     try
                     {
-                        var packet = new ReportPacket(server.Config.ReportToken, ips);
+                        Logger.LogDebug($"Reporing these IPs: {string.Join(", ", ips)}");
 
+                        var packet = new ReportPacket(server.Config.ReportToken, ips);
                         string json = JsonSerializer.Serialize(packet);
-                        Logger.LogInformation(json);
                         var content = new StringContent(json, Encoding.UTF8, "application/json");
                         var response = await HttpClient.PostAsync(server.Config.ReportServer, content);
 
