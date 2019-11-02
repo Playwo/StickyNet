@@ -13,13 +13,27 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.0.100
-    - name: SSH Commands
+    - name: SSHDeployCodefacility
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}
         port: ${{ secrets.PORT }}
+        script: |
+          cd /root/StickySource/StickyNet
+          git pull
+          service stickynet stop
+          dotnet publish -c Release -o /root/StickyNet --self-contained --runtime linux-x64
+          chmod +x /root/StickyNet/StickyNet
+          service stickynet start
+    - name: SSHDeployWireFrame
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST2 }}
+        username: ${{ secrets.USERNAME2 }}
+        key: ${{ secrets.KEY2 }}
+        port: ${{ secrets.PORT2 }}
         script: |
           cd /root/StickySource/StickyNet
           git pull
