@@ -122,7 +122,7 @@ namespace StickyNet
                 {
                     try
                     {
-                        Logger.LogDebug($"Reporing these IPs: {string.Join(", ", ips)}");
+                        Logger.LogDebug($"Reporting these IPs: {string.Join(", ", ips)}");
 
                         var packet = new ReportPacket(server.Config.ReportToken, ips);
                         string json = JsonSerializer.Serialize(packet);
