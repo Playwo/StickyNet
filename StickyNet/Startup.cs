@@ -46,12 +46,31 @@ namespace StickyNet
                 x.IgnoreUnknownArguments = false;
             });
 
-            var result = parser.ParseArguments<RunOptions, CreateOptions, DeleteOptions>(args)
+            var result = parser.ParseArguments<RunOptions, CreateOptions, DeleteOptions, ListOptions>(args)
                 .WithParsed<RunOptions>(opt => RunStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<CreateOptions>(opt => CreateStickyNetAsync(opt).GetAwaiter().GetResult())
-                .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult());
+                .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult())
+                .WithParsed<ListOptions>(opt => ListAllStickyNetsAsync(opt).GetAwaiter().GetResult());
 
             Thread.Sleep(100);
+        }
+
+        public async Task ListAllStickyNetsAsync(ListOptions options)
+        {
+            var service = new ConfigService();
+            await service.InitializeAsync();
+
+            if (service.Configs.Count == 0)
+            {
+                Logger.LogInformation("There are no StickyNets running on this machine!");
+            }
+
+            for (int i = 0; i < service.Configs.Count; i++)
+            {
+                var config = service.Configs[i];
+
+                Logger.LogInformation($"StickyNet #{i} - Port: {config.Port} Protocol: {config.Protocol}");
+            }
         }
 
         private async Task DeleteStickyNetAsync(DeleteOptions options)
