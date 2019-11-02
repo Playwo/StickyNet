@@ -77,8 +77,8 @@ namespace StickyNet
             {
                 Protocol.None => new StickyTcpServer(ip, new EmptyTcpProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
                 Protocol.FTP => new StickyTcpServer(ip, new FtpProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
-                Protocol.SSH => throw new NotImplementedException(),
-                Protocol.Telnet => throw new NotImplementedException(),
+                Protocol.SSH => new StickyTcpServer(ip, new SSHProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
+                Protocol.Telnet => new StickyTcpServer(ip, new TelnetProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
                 _ => null
             };
 
