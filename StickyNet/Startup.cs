@@ -50,12 +50,12 @@ namespace StickyNet
                 .WithParsed<RunOptions>(opt => RunStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<CreateOptions>(opt => CreateStickyNetAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult())
-                .WithParsed<ListOptions>(opt => ListAllStickyNetsAsync(opt).GetAwaiter().GetResult());
+                .WithParsed<ListOptions>(opt => ListAllStickyNetsAsync().GetAwaiter().GetResult());
 
             Thread.Sleep(100);
         }
 
-        public async Task ListAllStickyNetsAsync(ListOptions options)
+        public async Task ListAllStickyNetsAsync()
         {
             var service = new ConfigService();
             await service.InitializeAsync();
