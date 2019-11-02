@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace StickyNet.Report
 {
@@ -8,9 +9,9 @@ namespace StickyNet.Report
         public string Token { get; }
 
         [JsonPropertyName("ips")]
-        public IpReport[] ReportedIps { get; }
+        public List<IpReport> ReportedIps { get; }
 
-        public ReportPacket(string token, IpReport[] reportedIps)
+        public ReportPacket(string token, List<IpReport> reportedIps)
         {
             Token = token;
             ReportedIps = reportedIps;

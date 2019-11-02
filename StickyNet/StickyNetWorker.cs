@@ -97,7 +97,9 @@ namespace StickyNet
         private void ReporterTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e) => _ = Task.Run(() => ReportAdressesAsync());
         private async Task ReportAdressesAsync()
         {
-            foreach(var server in Servers)
+            Logger.LogInformation($"Started IP Reporting...");
+
+            foreach (var server in Servers)
             {
                 if(!server.Config.EnableReporting)
                 {
@@ -114,20 +116,35 @@ namespace StickyNet
 
                 server.ConnectionAttempts.Clear();
 
-                var parameters = new Dictionary<string, object>()
-                {
-                    ["token"] = server.Config.ReportToken,
-                    ["ips"] = new ReportPacket(server.Config.ReportToken, ipReports.ToArray())
-                };
+                var ips = ipReports.ToList();
 
-                var content = new StringContent(JsonSerializer.Serialize(parameters), Encoding.UTF8, "application/json");
-                var response = await HttpClient.PostAsync(server.Config.ReportServer, content);
-
-                if (!response.IsSuccessStatusCode)
+                if (ips.Count > 0)
                 {
-                    Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
+                    try
+                    {
+                        var packet = new ReportPacket(server.Config.ReportToken, ips);
+
+                        string json = JsonSerializer.Serialize(packet);
+                        Logger.LogInformation(json);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+                        var response = await HttpClient.PostAsync(server.Config.ReportServer, content);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error while reporting IPs!");
+                        throw;
+                    }
                 }
+
+                Logger.LogDebug($"Finished Reporting catched IPs from StickyNet Port {server.Port}");
             }
+
+            Logger.LogInformation("Finished IP Reporting!");
         }
     }
 }

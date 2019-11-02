@@ -9,14 +9,11 @@ namespace StickyNet.Report
     {
         public List<DateTime> ConnectionTimes { get; }
 
-        public double AverageRequestPerMinute
-        {
-            get {
-                var requestTimeSpan = ConnectionTimes.OrderByDescending(x => x.Ticks).First() - ConnectionTimes.OrderBy(x => x.Ticks).First();
-                int requestCount = ConnectionTimes.Count;
-                return requestCount / requestTimeSpan.TotalMinutes;
-            }
-        }
+        public int TotalRequests => ConnectionTimes.Count;
+
+        public TimeSpan RequestSpanTime => ConnectionTimes.OrderByDescending(x => x.Ticks).First() - ConnectionTimes.OrderBy(x => x.Ticks).First();
+
+        public double AverageRequestPerMinute => TotalRequests / RequestSpanTime.TotalMinutes;
 
         public double MaximumRequestsPerMinute
         {
@@ -59,10 +56,11 @@ namespace StickyNet.Report
         }
 
         public Reason CalculateReason() 
-            => MaximumRequestsPerMinute > 100
-                ? Reason.Hacker
-                : AverageRequestPerMinute < 1
-                    ? Reason.Scanner
-                    : Reason.Spammer;
+            => MaximumRequestsPerMinute > 100 
+                ? Reason.Hacker 
+                : TotalRequests > 6 
+                    ? Reason.Spammer 
+                    : Reason.Scanner;
+
     }
 }
