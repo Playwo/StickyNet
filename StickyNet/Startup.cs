@@ -15,23 +15,22 @@ namespace StickyNet
 {
     public class Startup
     {
-        private readonly ILoggerFactory LoggerFactory;
         private readonly ILogger<Startup> Logger;
 
         public Startup()
         {
-            LoggerFactory = MakeLoggerFactory();
-            Logger = LoggerFactory.CreateLogger<Startup>();
+            Logger = MakeLogger();
         }
 
-        private ILoggerFactory MakeLoggerFactory()
-            => Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+        private ILogger<Startup> MakeLogger()
+            => LoggerFactory.Create(builder =>
             {
                 builder.SetMinimumLevel(LogLevel.Debug);
                 builder.ClearProviders();
                 builder.AddConsole();
                 builder.AddDebug();
-            });
+            })
+            .CreateLogger<Startup>();
 
         public void Run(string[] args)
         {
