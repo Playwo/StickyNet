@@ -24,8 +24,7 @@ namespace StickyNet
         private readonly ILoggerFactory LoggerFactory;
         private readonly HttpClient HttpClient;
 
-        private readonly System.Timers.Timer ReporterTimer;
-
+        public System.Timers.Timer ReporterTimer { get; }
         public List<IStickyServer> Servers { get; }
 
         public StickyNetWorker(ConfigService configuration, ILogger<StickyNetWorker> logger, ILoggerFactory loggerFactory, HttpClient httpClient)
