@@ -67,11 +67,11 @@ namespace StickyNet
             }
         }
 
-        private async Task StartServerAsync(StickyServerConfig config)
+        private Task StartServerAsync(StickyServerConfig config)
         {
             Logger.LogDebug("Found new StickyNet in config file...");
-            var hosts = await Dns.GetHostEntryAsync(Dns.GetHostName());
-            var ip = hosts.AddressList.First();
+
+            var ip = IPAddress.Any;
 
             IStickyServer server = config.Protocol switch
             {
@@ -84,6 +84,8 @@ namespace StickyNet
 
             Servers.Add(server);
             server.Start();
+
+            return Task.CompletedTask;
         }
 
         private Task StopServerAsync(StickyServerConfig config)
