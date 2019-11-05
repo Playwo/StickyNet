@@ -14,7 +14,9 @@ jobs:
       with:
         dotnet-version: 3.0.100
     - name: Build with dotnet
-      run: dotnet publish -c Release -o /root/StickyNet --self-contained --runtime linux-x64
+      run: |
+        dotnet publish -c Release -o Output --self-contained --runtime linux-x64
+        cd Output
     - name: Commit files
       run: |
         git config --local user.email "action@github.com"
