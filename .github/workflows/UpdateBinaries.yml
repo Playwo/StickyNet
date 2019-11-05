@@ -18,8 +18,8 @@ jobs:
         dotnet-version: 3.0.100
     - name: Build with dotnet
       run: |
-        dotnet publish -c Release -o Binaries --self-contained --runtime linux-x64
-        cd Output
+        dotnet publish -c Release -o Binaries --self-contained --runtime linux-x64 StickyNet/
+        cd Binaries
     - name: Commit files
       run: |
         git config --local user.email "action@github.com"
