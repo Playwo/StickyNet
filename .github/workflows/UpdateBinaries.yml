@@ -33,3 +33,4 @@ jobs:
       with:
         github_token: ${{ secrets.GHTOKEN }}
         repository: 'StickyNetBinaries'
+        directory: 'Binaries'
