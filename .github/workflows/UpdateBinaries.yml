@@ -9,13 +9,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Clone Binaries
+      run: |
+        git clone https://github.com/Playwo/StickyNetBinaries.git Binaries
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.0.100
     - name: Build with dotnet
       run: |
-        dotnet publish -c Release -o Output --self-contained --runtime linux-x64
+        dotnet publish -c Release -o Binaries --self-contained --runtime linux-x64
         cd Output
     - name: Commit files
       run: |
