@@ -62,7 +62,7 @@ namespace StickyNet
 
             foreach (var server in Servers)
             {
-                server.Stop();
+                await StopServerAsync(server.Config);
             }
         }
 
@@ -91,6 +91,7 @@ namespace StickyNet
         {
             var server = Servers.Where(x => x.Port == config.Port).First();
             server.Stop();
+            server.Dispose();
 
             Servers.RemoveAll(x => x.Port == config.Port);
 

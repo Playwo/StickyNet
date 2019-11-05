@@ -13,5 +13,7 @@ namespace StickyNet.Server
 
         public bool Start();
         public bool Stop();
+
+        public void Dispose();
     }
 }
