@@ -32,5 +32,5 @@ jobs:
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GHTOKEN }}
-        repository: 'https://github.com/Playwo/StickyNetBinaries.git'
+        repository: 'Playwo/StickyNetBinaries'
         directory: 'Binaries'
