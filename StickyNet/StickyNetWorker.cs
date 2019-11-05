@@ -71,13 +71,14 @@ namespace StickyNet
             Logger.LogDebug("Found new StickyNet in config file...");
 
             var ip = IPAddress.Any;
+            var logger = LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]");
 
             IStickyServer server = config.Protocol switch
             {
-                Protocol.None => new StickyTcpServer(ip, new EmptyTcpProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
-                Protocol.FTP => new StickyTcpServer(ip, new FtpProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
-                Protocol.SSH => new StickyTcpServer(ip, new SSHProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
-                Protocol.Telnet => new StickyTcpServer(ip, new TelnetProtocol(), config, LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]")),
+                Protocol.None => new StickyTcpServer(ip, new EmptyTcpProtocol(), config, logger),
+                Protocol.FTP => new StickyTcpServer(ip, new FtpProtocol(), config, logger),
+                Protocol.SSH => new StickyTcpServer(ip, new SSHProtocol(), config, logger),
+                Protocol.Telnet => new StickyTcpServer(ip, new TelnetProtocol(), config, logger),
                 _ => null
             };
 
