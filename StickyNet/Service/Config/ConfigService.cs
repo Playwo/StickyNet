@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Timers;
@@ -14,11 +15,30 @@ namespace StickyNet.Service
         private Timer RefreshTimer { get; set; }
         private List<StickyServerConfig> ServerConfigs { get; set; }
 
-        public string ConfigPath => "config.cfg";
+        public string ConfigPath { get; private set; }
         public IReadOnlyList<StickyServerConfig> Configs => ServerConfigs.AsReadOnly();
 
         public event Func<StickyServerConfig, Task> ServerAdded;
         public event Func<StickyServerConfig, Task> ServerRemoved;
+
+        public override async Task InitializeAsync()
+        {
+            ConfigPath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? "/etc/stickynet.cfg"
+                : "stickynet.cfg";
+
+            ServerConfigs = new List<StickyServerConfig>();
+
+            RefreshTimer = new Timer(1500)
+            {
+                AutoReset = true,
+            };
+
+            await RefreshConfigFileAsync();
+
+            RefreshTimer.Elapsed += RefreshAsync;
+            RefreshTimer.Start();
+        }
 
         public async Task RefreshConfigFileAsync()
         {
@@ -95,21 +115,6 @@ namespace StickyNet.Service
         {
             string json = JsonSerializer.Serialize(ServerConfigs);
             await File.WriteAllTextAsync(ConfigPath, json);
-        }
-
-        public override async Task InitializeAsync()
-        {
-            ServerConfigs = new List<StickyServerConfig>();
-
-            RefreshTimer = new Timer(1500)
-            {
-                AutoReset = true,
-            };
-
-            await RefreshConfigFileAsync();
-
-            RefreshTimer.Elapsed += RefreshAsync;
-            RefreshTimer.Start();
         }
 
         private async void RefreshAsync(object sender, EventArgs e)
