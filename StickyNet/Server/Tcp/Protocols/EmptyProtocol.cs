@@ -7,7 +7,7 @@ namespace StickyNet.Server.Tcp
     {
         public string Name => "None";
 
-        public Task<bool> PerformHandshakeAsync(TcpServer server, TcpSession session)
+        public Task PerformHandshakeAsync(TcpServer server, TcpSession session)
         {
             session.SendAsync("You've been catched in a StickyNet!");
             session.Disconnect();
