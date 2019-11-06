@@ -7,13 +7,33 @@ namespace StickyNet.Server.Tcp
     {
         public string Name => "Telnet";
 
-        public async Task<bool> PerformHandshakeAsync(TcpServer server, TcpSession session)
+        public async Task PerformHandshakeAsync(TcpServer server, TcpSession session)
         {
             session.SendAsync("Welcome to Telnet! You need to authorize to send commands!");
-            await Task.Delay(10000);
-            session.Disconnect();
 
-            return true;
+            for(int i = 0; i < 4; i++)
+            {
+                string response = await session.ReceiveAsync(10000);
+
+                if (response == null)
+                {
+                    session.Send("Timeout...");
+                    session.Disconnect();
+                    return;
+                }
+
+                if (response.Length > 100)
+                {
+                    session.Send("Exceeded maximum password lenght!");
+                    session.Disconnect();
+                    return;
+                }
+
+                session.Send("Invalid password!");
+            }
+
+            session.Send("Out of authentication tries!");
+            session.Disconnect();
         }
     }
 }

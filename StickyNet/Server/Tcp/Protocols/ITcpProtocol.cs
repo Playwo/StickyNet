@@ -6,6 +6,6 @@ namespace StickyNet.Server.Tcp
     public interface ITcpProtocol
     {
         public string Name { get; }
-        public Task<bool> PerformHandshakeAsync(TcpServer server, TcpSession session);
+        public Task PerformHandshakeAsync(TcpServer server, TcpSession session);
     }
 }
