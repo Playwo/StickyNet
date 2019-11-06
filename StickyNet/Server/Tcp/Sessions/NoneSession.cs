@@ -1,12 +1,9 @@
-﻿using System;
-using NetCoreServer;
+﻿using NetCoreServer;
 
 namespace StickyNet.Server.Tcp
 {
-    public class NoneSession : TcpSession, IProtocol
+    public class NoneSession : TcpSession
     {
-        public string Name => "None";
-
         public NoneSession(TcpServer server) 
             : base(server)
         {

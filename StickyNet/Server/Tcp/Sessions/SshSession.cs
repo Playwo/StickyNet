@@ -2,10 +2,8 @@
 
 namespace StickyNet.Server.Tcp
 {
-    public class SshSession : TcpSession, IProtocol
+    public class SshSession : TcpSession
     {
-        public string Name => "SSH";
-
         public SshSession(TcpServer server) 
             : base(server)
         {

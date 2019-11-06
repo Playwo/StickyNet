@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using NetCoreServer;
+﻿using NetCoreServer;
 
 namespace StickyNet.Server.Tcp
 {
-    public class FtpSession : TcpSession, IProtocol
+    public class FtpSession : TcpSession
     {
-        public string Name => "FTP";
-
         public FtpSession(TcpServer server) 
             : base(server)
         {

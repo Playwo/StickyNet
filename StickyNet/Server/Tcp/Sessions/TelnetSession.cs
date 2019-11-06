@@ -2,9 +2,8 @@
 
 namespace StickyNet.Server.Tcp
 {
-    public class TelnetSession : TcpSession, IProtocol
+    public class TelnetSession : TcpSession
     {
-        public string Name => "Telnet";
         public int RemainingTries = 4;
 
         public TelnetSession(TcpServer server) 

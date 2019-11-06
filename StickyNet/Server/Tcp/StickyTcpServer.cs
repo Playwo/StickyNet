@@ -12,7 +12,7 @@ using StickyNet.Report;
 namespace StickyNet.Server.Tcp
 {
     public class StickyTcpServer<ISession> : TcpServer, IStickyServer 
-        where ISession : TcpSession, IProtocol
+        where ISession : TcpSession
     {
         private readonly ILogger Logger;
 
@@ -72,7 +72,7 @@ namespace StickyNet.Server.Tcp
         }
 
         protected override void OnStarted()
-            => Logger.LogInformation($"Started TCP StickyNet on Port {Endpoint.Port}! Protocol : {Activator.CreateInstance<ISession>().Name}");
+            => Logger.LogInformation($"Started TCP StickyNet on Port {Endpoint.Port}! Protocol : {Config.Protocol}");
 
         protected override void OnStopped()
             => Logger.LogInformation($"Stopped TCP StickyNet on Port {Endpoint.Port}");
