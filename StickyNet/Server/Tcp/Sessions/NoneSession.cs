@@ -2,13 +2,11 @@
 
 namespace StickyNet.Server.Tcp
 {
-    public class NoneSession : TcpSession
+    public class NoneSession : StickyTcpSession
     {
         public NoneSession(TcpServer server) 
-            : base(server)
+            : base(server, 1000)
         {
         }
-
-        protected override void OnConnected() => Disconnect();
     }
 }

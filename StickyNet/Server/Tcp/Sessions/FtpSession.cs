@@ -2,10 +2,10 @@
 
 namespace StickyNet.Server.Tcp
 {
-    public class FtpSession : TcpSession
+    public class FtpSession : StickyTcpSession
     {
         public FtpSession(TcpServer server) 
-            : base(server)
+            : base(server, 5000)
         {
         }
 

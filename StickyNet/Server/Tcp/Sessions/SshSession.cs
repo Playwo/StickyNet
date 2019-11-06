@@ -2,13 +2,11 @@
 
 namespace StickyNet.Server.Tcp
 {
-    public class SshSession : TcpSession
+    public class SshSession : StickyTcpSession
     {
         public SshSession(TcpServer server) 
-            : base(server)
+            : base(server, 1000)
         {
         }
-
-        protected override void OnConnected() => Disconnect();
     }
 }

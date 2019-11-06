@@ -64,11 +64,6 @@ namespace StickyNet.Server.Tcp
             {
                 Logger.LogError(ex, "An error occured while someone connected to the TCP Server!");
             }
-            finally
-            {
-                await Task.Delay(30000); //Close the connection if its open for longer than 30secs
-                session.Disconnect();
-            }
         }
 
         protected override void OnStarted()
