@@ -1,4 +1,4 @@
-name: .NET Core
+name: UpdateBinaries
 
 on: [push]
 
@@ -8,25 +8,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Clone Binaries
-      run: |
-        git clone https://github.com/Playwo/StickyNetBinaries.git Binaries
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.0.100
+    - name: Clone StickyNet
+      run: |
+        git clone https://github.com/Playwo/StickyNet.git StickyNet
+    - name: Clone Binaries
+      run: |
+        git clone https://github.com/Playwo/StickyNetBinaries.git Binaries
     - name: Build with dotnet
       run: |
         dotnet publish -c Release -o Binaries --self-contained --runtime linux-x64 StickyNet/
-        cd Binaries
     - name: Commit files
       run: |
+        cd Binaries
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git add -A
         git commit -m "Build newest version" -a
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GHTOKEN }}
-        repository: 'StickyNetBinaries'
+        repository: 'Playwo/StickyNetBinaries'
+        directory: 'Binaries'
