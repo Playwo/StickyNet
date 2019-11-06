@@ -4,18 +4,19 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
 using StickyNet.Report;
 
 namespace StickyNet.Server.Tcp
 {
-    public class StickyTcpServer : TcpServer, IStickyServer
+    public class StickyTcpServer<ISession> : TcpServer, IStickyServer 
+        where ISession : TcpSession, IProtocol
     {
         private readonly ILogger Logger;
 
         public StickyServerConfig Config { get; }
-        public ITcpProtocol Protocol { get; }
 
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
@@ -23,11 +24,10 @@ namespace StickyNet.Server.Tcp
         public ConcurrentDictionary<IPAddress, RequestList> ConnectionAttempts { get; }
 
 
-        public StickyTcpServer(IPAddress address, ITcpProtocol protocol, StickyServerConfig config, ILogger logger)
+        public StickyTcpServer(IPAddress address, StickyServerConfig config, ILogger logger)
             : base(address, config.Port)
         {
             Config = config;
-            Protocol = protocol;
             Logger = logger;
 
             if (Config.EnableReporting)
@@ -35,6 +35,9 @@ namespace StickyNet.Server.Tcp
                 ConnectionAttempts = new ConcurrentDictionary<IPAddress, RequestList>();
             }
         }
+
+        protected override TcpSession CreateSession() 
+            => (ISession)Activator.CreateInstance(typeof(ISession), this);
 
         protected override async void OnConnected(TcpSession session)
         {
@@ -56,8 +59,6 @@ namespace StickyNet.Server.Tcp
                         ip => new RequestList().AddConnection(attempt),
                         (ip, list) => list.AddConnection(attempt));
                 }
-
-                await Protocol.PerformHandshakeAsync(this, session);
             }
             catch (Exception ex)
             {
@@ -65,15 +66,13 @@ namespace StickyNet.Server.Tcp
             }
             finally
             {
-                if (session.IsConnected)
-                {
-                    session.Disconnect();
-                }
+                await Task.Delay(30000); //Close the connection if its open for longer than 30secs
+                session.Disconnect();
             }
         }
 
         protected override void OnStarted()
-            => Logger.LogInformation($"Started TCP StickyNet on Port {Endpoint.Port}! Protocol : {Protocol.Name}");
+            => Logger.LogInformation($"Started TCP StickyNet on Port {Endpoint.Port}! Protocol : {Activator.CreateInstance<ISession>().Name}");
 
         protected override void OnStopped()
             => Logger.LogInformation($"Stopped TCP StickyNet on Port {Endpoint.Port}");
