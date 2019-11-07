@@ -4,8 +4,8 @@ namespace StickyNet.Server.Tcp
 {
     public class SshSession : StickyTcpSession
     {
-        public SshSession(TcpServer server) 
-            : base(server, 1000)
+        public SshSession(TcpServer server, int timeout) 
+            : base(server, timeout)
         {
         }
     }

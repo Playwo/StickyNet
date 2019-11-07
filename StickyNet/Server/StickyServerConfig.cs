@@ -8,16 +8,20 @@ namespace StickyNet.Server
         public Protocol Protocol { get; set; }
         public string OutputPath { get; set; }
         public bool EnableOutput => OutputPath != null;
+        public int ConnectionTimeout { get; set; }
 
-        public Uri ReportServer { get; set; }
-        public string ReportToken { get; set; }
+        public Uri ReportServer { get; set; } = null;
+        public string ReportToken { get; set; } = null;
         public bool EnableReporting => ReportServer != null;
 
-        public StickyServerConfig(int port, Protocol protocol, string outputPath, Uri reportServer, string reportToken)
+        public StickyServerConfig(int port, Protocol protocol,
+            string outputPath, int connectionTimeout,
+            Uri reportServer, string reportToken)
         {
             Port = port;
             Protocol = protocol;
             OutputPath = outputPath;
+            ConnectionTimeout = connectionTimeout;
             ReportServer = reportServer;
             ReportToken = reportToken;
         }
@@ -26,9 +30,10 @@ namespace StickyNet.Server
         {
         }
 
-        public bool Equals(StickyServerConfig other) => other == null
-                                                            ? false
-                                                            : Port == other.Port;
+        public bool Equals(StickyServerConfig other)
+            => other == null
+                ? false
+                : Port == other.Port;
 
         public override bool Equals(object obj) => Equals(obj as StickyServerConfig);
 

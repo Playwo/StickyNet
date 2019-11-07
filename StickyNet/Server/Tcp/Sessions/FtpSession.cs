@@ -4,8 +4,8 @@ namespace StickyNet.Server.Tcp
 {
     public class FtpSession : StickyTcpSession
     {
-        public FtpSession(TcpServer server) 
-            : base(server, 5000)
+        public FtpSession(TcpServer server, int timeout) 
+            : base(server, timeout)
         {
         }
 

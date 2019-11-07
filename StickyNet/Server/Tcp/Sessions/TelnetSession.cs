@@ -7,8 +7,8 @@ namespace StickyNet.Server.Tcp
     {
         public int RemainingTries = 4;
 
-        public TelnetSession(TcpServer server) 
-            : base(server, 5000)
+        public TelnetSession(TcpServer server, int timeout) 
+            : base(server, timeout)
         {
         }
 

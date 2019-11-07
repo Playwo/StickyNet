@@ -14,6 +14,9 @@ namespace StickyNet.Arguments
 
         [Option('o', "output", HelpText = "The path to log requests to", Default = null)]
         public string OutputPath { get; set; }
+        
+        [Option('c', "connectiontimeout", HelpText = "The timeout in ms after which a inactive connection is closed", Default = 5000)]
+        public int ConnectionTimeout { get; set; }
 
         [Option('s', "reportserver", HelpText = "The ip and port of the server to report the connection attempts to", Default = null)]
         public string ReportServer { get; set; }

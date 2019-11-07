@@ -37,7 +37,7 @@ namespace StickyNet.Server.Tcp
         }
 
         protected override TcpSession CreateSession() 
-            => (ISession)Activator.CreateInstance(typeof(ISession), this);
+            => (ISession)Activator.CreateInstance(typeof(ISession), this, Config.ConnectionTimeout);
 
         protected override async void OnConnected(TcpSession session)
         {
