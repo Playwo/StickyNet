@@ -1,17 +1,22 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace StickyNet.Server
 {
     public class StickyServerConfig
     {
-        public int Port { get; set; }
-        public Protocol Protocol { get; set; }
-        public string OutputPath { get; set; }
+        public int Port { get; set; } 
+        public Protocol Protocol { get; set; } = Protocol.None;
+        public string OutputPath { get; set; } = null;
+
+        [JsonIgnore]
         public bool EnableOutput => OutputPath != null;
-        public int ConnectionTimeout { get; set; }
+        public int ConnectionTimeout { get; set; } = 5000;
 
         public Uri ReportServer { get; set; } = null;
         public string ReportToken { get; set; } = null;
+
+        [JsonIgnore]
         public bool EnableReporting => ReportServer != null;
 
         public StickyServerConfig(int port, Protocol protocol,
@@ -29,6 +34,11 @@ namespace StickyNet.Server
         public StickyServerConfig()
         {
         }
+
+        public bool IsValid() 
+            => Port >= 1 &&
+                ConnectionTimeout >= 10 &&
+                Port <= 65636;
 
         public bool Equals(StickyServerConfig other)
             => other == null

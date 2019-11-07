@@ -58,7 +58,7 @@ namespace StickyNet.Service
 
             foreach (var config in addedConfigs)
             {
-                if (ServerAdded != null)
+                if (config.IsValid() && ServerAdded != null)
                 {
                     await ServerAdded.Invoke(config);
                 }
@@ -68,13 +68,13 @@ namespace StickyNet.Service
 
             foreach (var config in removedConfigs)
             {
-                if (ServerRemoved != null)
+                if (config.IsValid() && ServerRemoved != null)
                 {
                     await ServerRemoved.Invoke(config);
                 }
             }
 
-            ServerConfigs = newServerConfigs;
+            ServerConfigs = newServerConfigs.Where(x => x.IsValid()).ToList();
         }
 
         public async Task<(bool, string)> AddStickyNetAsync(StickyServerConfig config)

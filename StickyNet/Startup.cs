@@ -116,7 +116,7 @@ namespace StickyNet
             var service = new ConfigService();
             await service.InitializeAsync();
 
-            var cfg = new StickyServerConfig(options.Port, options.Protocol, options.OutputPath, url, options.ReportToken);
+            var cfg = new StickyServerConfig(options.Port, options.Protocol, options.OutputPath, options.ConnectionTimeout, url, options.ReportToken);
 
             var result = await service.AddStickyNetAsync(cfg);
 
