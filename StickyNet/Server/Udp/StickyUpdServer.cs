@@ -14,19 +14,17 @@ namespace StickyNet.Server.Udp
     {
         private readonly ILogger Logger;
 
+        public event Action<IPAddress, ConnectionAttempt> CatchedIpAdress;
+
         public StickyServerConfig Config { get; }
         public IUdpProtocol Protocol { get; }
 
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
 
-        public ConcurrentDictionary<IPAddress, RequestList> ConnectionAttempts { get; }
-
         public StickyUpdServer(IPAddress address, StickyServerConfig config, IUdpProtocol protocol, ILogger logger)
             : base(address, config.Port)
         {
-            ConnectionAttempts = new ConcurrentDictionary<IPAddress, RequestList>();
-
             Config = config;
             Protocol = protocol;
             Logger = logger;
@@ -37,19 +35,17 @@ namespace StickyNet.Server.Udp
             try
             {
                 var remoteEndPoint = endpoint as IPEndPoint;
+                var attempt = new ConnectionAttempt(DateTime.UtcNow, Port);
+
                 Logger.LogInformation($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
 
-                var attempt = new ConnectionAttempt(remoteEndPoint.Address, DateTime.UtcNow, Port);
-
+                if (Config.EnableReporting)
+                {
+                    CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
+                }
                 if (Config.EnableOutput)
                 {
                     await File.AppendAllTextAsync(Config.OutputPath, JsonSerializer.Serialize(attempt) + "\n");
-                }
-                if (Config.EnableReporting)
-                {
-                    ConnectionAttempts.AddOrUpdate(remoteEndPoint.Address,
-                        ip => new RequestList().AddConnection(attempt),
-                        (ip, list) => list.AddConnection(attempt));
                 }
 
                 await Protocol.PerformHandshakeAsync(endpoint);

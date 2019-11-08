@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -23,8 +25,11 @@ namespace StickyNet
         private readonly ILoggerFactory LoggerFactory;
         private readonly HttpClient HttpClient;
 
+        private DateTimeOffset LastReport { get; set; }
+
         public System.Timers.Timer ReporterTimer { get; }
         public List<IStickyServer> Servers { get; }
+        public ConcurrentDictionary<IPAddress, ConcurrentBag<ConnectionAttempt>> AttemptCache { get; }
 
         public StickyNetWorker(ConfigService configuration, ILogger<StickyNetWorker> logger, ILoggerFactory loggerFactory, HttpClient httpClient)
         {
@@ -32,9 +37,10 @@ namespace StickyNet
             Configuration = configuration;
             LoggerFactory = loggerFactory;
             HttpClient = httpClient;
+            LastReport = DateTimeOffset.UtcNow;
 
             Servers = new List<IStickyServer>();
-            ReporterTimer = new System.Timers.Timer(600000); //10 Minutes
+            ReporterTimer = new System.Timers.Timer(10000); //10 Seconds
             ReporterTimer.Elapsed += ReporterTimer_Elapsed;
             ReporterTimer.Start();
         }
@@ -82,6 +88,10 @@ namespace StickyNet
             };
 
             Servers.Add(server);
+            if (server.Config.EnableReporting)
+            {
+                server.CatchedIpAdress += Server_CatchedIpAdress;
+            }
             server.Start();
 
             return Task.CompletedTask;
@@ -90,6 +100,7 @@ namespace StickyNet
         private Task StopServerAsync(StickyServerConfig config)
         {
             var server = Servers.Where(x => x.Port == config.Port).First();
+            server.CatchedIpAdress -= Server_CatchedIpAdress;
             server.Stop();
             server.Dispose();
 
@@ -98,57 +109,64 @@ namespace StickyNet
             return Task.CompletedTask;
         }
 
+        private void Server_CatchedIpAdress(IPAddress ip, ConnectionAttempt attempt) 
+            => AttemptCache.AddOrUpdate(ip, x => new ConcurrentBag<ConnectionAttempt>(
+                new ConcurrentBag<ConnectionAttempt>() { attempt }), 
+                (ip, bag) =>
+                {
+                    bag.Add(attempt);
+                    return bag;
+                });
+
+
         private void ReporterTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e) => _ = Task.Run(() => ReportAdressesAsync());
         private async Task ReportAdressesAsync()
         {
-            Logger.LogInformation($"Started IP Reporting...");
+            Logger.LogDebug($"Starting IP Reporting...");
 
-            foreach (var server in Servers)
+            var attempts = AttemptCache.ToList();
+            AttemptCache.Clear();
+
+            var startTime = LastReport;
+
+            var ipReports = new List<IpReport>();
+
+            foreach(var item in attempts)
             {
-                if (!server.Config.EnableReporting)
-                {
-                    continue;
-                }
+                var portReports = item.Value.GroupBy(attempt => attempt.Port)
+                                            .Select(group => new PortTimeReport(group.Key, 
+                                                                                group.Select(z => z.Time), 
+                                                                                startTime))
+                                            .ToArray();
 
-                var ipReports = new List<IpReport>();
-
-                foreach (var attempt in server.ConnectionAttempts)
-                {
-                    var reason = attempt.Value.CalculateReason();
-                    ipReports.Add(new IpReport(attempt.Key.ToString(), reason));
-                }
-
-                server.ConnectionAttempts.Clear();
-
-                var ips = ipReports.ToList();
-
-                if (ips.Count > 0)
-                {
-                    try
-                    {
-                        Logger.LogDebug($"Reporting these IPs: {string.Join(", ", ips)}");
-
-                        var packet = new ReportPacket(server.Config.ReportToken, server.Config.Protocol, ips);
-                        string json = JsonSerializer.Serialize(packet);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-                        var response = await HttpClient.PostAsync(server.Config.ReportServer, content);
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "Error while reporting IPs!");
-                        throw;
-                    }
-                }
-
-                Logger.LogDebug($"Finished Reporting catched IPs from StickyNet Port {server.Port}");
+                var ipReport = new IpReport(item.Key, portReports);
+                ipReports.Add(ipReport);
             }
 
-            Logger.LogInformation("Finished IP Reporting!");
+            if (ipReports.Count > 0)
+            {
+                var reportPacket = new ReportPacket(, startTime, ipReports.ToArray());
+
+                try
+                {
+                    string json = JsonSerializer.Serialize(reportPacket);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var response = await HttpClient.PostAsync(server.Config.ReportServer, content);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error while reporting IPs!");
+                }
+
+                Logger.LogInformation($"Reported {ipReports.Count} IPs: \n{string.Join("\n",reportPacket.ReportedIps.AsEnumerable())}");
+            }
+
+            Logger.LogDebug("Finished IP Reporting");
         }
     }
 }

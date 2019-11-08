@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Net;
+using System.Text.Json.Serialization;
 
 namespace StickyNet.Report
 {
@@ -7,19 +8,15 @@ namespace StickyNet.Report
         [JsonPropertyName("ip")]
         public string Ip { get; }
 
-        [JsonPropertyName("r")]
-        public Reason Reason { get; }
+        [JsonPropertyName("prt")]
+        public PortTimeReport[] Reports { get; }
 
-        [JsonPropertyName("v")]
-        public int Valid => 0;
-
-        public IpReport(string ip, Reason reason)
+        public IpReport(IPAddress ip, PortTimeReport[] reports)
         {
-            Ip = ip;
-            Reason = reason;
+            Ip = ip.ToString();
+            Reports = reports;
         }
 
-        public override string ToString()
-            => $"{Ip} [{Reason}]";
+        public override string ToString() => $"{Ip} [{Reports.Length + 1}]";
     }
 }

@@ -1,6 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
 using System.Net;
-using StickyNet.Report;
 
 namespace StickyNet.Server
 {
@@ -8,8 +7,9 @@ namespace StickyNet.Server
     {
         public EndPoint EndPoint { get; }
         public int Port { get; }
-        public ConcurrentDictionary<IPAddress, RequestList> ConnectionAttempts { get; }
         public StickyServerConfig Config { get; }
+
+        public event Action<IPAddress, ConnectionAttempt> CatchedIpAdress;
 
         public bool Start();
         public bool Stop();

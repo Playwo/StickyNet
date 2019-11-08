@@ -15,12 +15,12 @@ namespace StickyNet.Server.Tcp
     {
         private readonly ILogger Logger;
 
+        public event Action<IPAddress, ConnectionAttempt> CatchedIpAdress;
+
         public StickyServerConfig Config { get; }
 
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
-
-        public ConcurrentDictionary<IPAddress, RequestList> ConnectionAttempts { get; }
 
 
         public StickyTcpServer(IPAddress address, StickyServerConfig config, ILogger logger)
@@ -28,11 +28,6 @@ namespace StickyNet.Server.Tcp
         {
             Config = config;
             Logger = logger;
-
-            if (Config.EnableReporting)
-            {
-                ConnectionAttempts = new ConcurrentDictionary<IPAddress, RequestList>();
-            }
         }
 
         protected override TcpSession CreateSession() 
@@ -43,21 +38,19 @@ namespace StickyNet.Server.Tcp
             try
             {
                 var remoteEndPoint = session.Socket.RemoteEndPoint as IPEndPoint;
+                var attempt = new ConnectionAttempt(DateTime.UtcNow, Port);
+
                 Logger.LogInformation($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
 
-
-                var attempt = new ConnectionAttempt(remoteEndPoint.Address, DateTime.UtcNow, Port);
-
+                if (Config.EnableReporting)
+                {
+                    CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
+                }
                 if (Config.EnableOutput)
                 {
                     await File.AppendAllTextAsync(Config.OutputPath, JsonSerializer.Serialize(attempt) + "\n");
                 }
-                if (Config.EnableReporting)
-                {
-                    ConnectionAttempts.AddOrUpdate(remoteEndPoint.Address,
-                        ip => new RequestList().AddConnection(attempt),
-                        (ip, list) => list.AddConnection(attempt));
-                }
+
             }
             catch (Exception ex)
             {
