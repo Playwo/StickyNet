@@ -7,9 +7,8 @@ using CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using StickyNet.Arguments;
-using StickyNet.Server;
-using StickyNet.Service;
+using StickyNet.Options;
+using StickyNet.Workers;
 
 namespace StickyNet
 {
@@ -19,10 +18,10 @@ namespace StickyNet
 
         public Startup()
         {
-            Logger = MakeLogger();
+            Logger = MakeLogger<Startup>();
         }
 
-        private ILogger<Startup> MakeLogger()
+        private ILogger<T> MakeLogger<T>()
             => LoggerFactory.Create(builder =>
             {
                 builder.SetMinimumLevel(LogLevel.Debug);
@@ -30,7 +29,7 @@ namespace StickyNet
                 builder.AddConsole();
                 builder.AddDebug();
             })
-            .CreateLogger<Startup>();
+            .CreateLogger<T>();
 
         public void Run(string[] args)
         {
@@ -46,97 +45,46 @@ namespace StickyNet
             });
 
             var result = parser.ParseArguments<RunOptions, CreateOptions, DeleteOptions, ListOptions>(args)
-                .WithParsed<RunOptions>(opt => RunStickyNetAsync(opt).GetAwaiter().GetResult())
-                .WithParsed<CreateOptions>(opt => CreateStickyNetAsync(opt).GetAwaiter().GetResult())
-                .WithParsed<DeleteOptions>(opt => DeleteStickyNetAsync(opt).GetAwaiter().GetResult())
-                .WithParsed<ListOptions>(opt => ListAllStickyNetsAsync().GetAwaiter().GetResult());
+                .WithParsed<RunOptions>(opt => StartStickyNetRunnerAsync(opt).GetAwaiter().GetResult())
+                .WithParsed<IOption>(opt => StartStickyNetWorkerAsync(opt).GetAwaiter().GetResult());
 
-            Thread.Sleep(100);
+            Thread.Sleep(100); //Wait for all logs to appear
         }
 
-        public async Task ListAllStickyNetsAsync()
+        private async Task StartStickyNetWorkerAsync(IOption option)
         {
-            var service = new ConfigService();
-            await service.InitializeAsync();
+            Logger.LogInformation("Starting StickyNet Worker...");
 
-            if (service.Configs.Count == 0)
-            {
-                Logger.LogInformation("There are no StickyNets running on this machine!");
-            }
+            var hostBuilder = Host.CreateDefaultBuilder()
+                           .ConfigureServices(async (hostContext, services) =>
+                           {
+#pragma warning disable IDE0001
+                               services.AddSingleton<IOption>(option);
+#pragma warning restore
+                               services.AddHostedService<StickyNetWorker>();
+                               services.AddStickyServices();
+                               await services.InitializeStickyServicesAsync();
+                           })
+                           .ConfigureLogging(logging =>
+                           {
+                               logging.SetMinimumLevel(option.LogLevel);
+                               logging.AddConsole();
+                               logging.AddDebug();
+                           })
+                           .UseConsoleLifetime();
 
-            for (int i = 0; i < service.Configs.Count; i++)
-            {
-                var config = service.Configs[i];
-
-                Logger.LogInformation($"StickyNet #{i} - Port: {config.Port} Protocol: {config.Protocol}");
-            }
+            await hostBuilder.RunConsoleAsync();
         }
 
-        private async Task DeleteStickyNetAsync(DeleteOptions options)
+        private async Task StartStickyNetRunnerAsync(RunOptions options)
         {
-            Logger.LogInformation($"Deleting StickyNet from port {options.Port}...");
+            Logger.LogInformation("Starting StickyNet Runner...");
 
-            var service = new ConfigService();
-            await service.InitializeAsync();
-
-            var result = await service.RemoveStickyNetAsync(options.Port);
-
-            if (!result.Item1)
-            {
-                Logger.LogError(result.Item2);
-            }
-            else
-            {
-                Logger.LogInformation($"Successfully removed StickyNet from port {options.Port}");
-            }
-        }
-
-        private async Task CreateStickyNetAsync(CreateOptions options)
-        {
-            Logger.LogInformation($"Creating StickyNet on port {options.Port} imitating {options.Protocol}...");
-
-            if ((options.ReportToken != null && options.ReportServer == null) || (options.ReportToken == null && options.ReportServer != null))
-            {
-                Logger.LogError("You need to provide a reportserver and a reporttoken, not just one of them!");
-                return;
-            }
-
-            Uri url = null;
-
-            if (options.ReportServer != null && options.ReportToken != null)
-            {
-                if (!Uri.TryCreate(options.ReportServer, UriKind.Absolute, out url))
-                {
-                    Logger.LogError("The Report Server could not be parsed! Please use the following format : http://$host:$port/$path");
-                    return;
-                }
-            }
-
-
-            var service = new ConfigService();
-            await service.InitializeAsync();
-
-            var cfg = new StickyServerConfig(options.Port, options.Protocol, options.OutputPath, options.ConnectionTimeout, url, options.ReportToken);
-
-            var result = await service.AddStickyNetAsync(cfg);
-
-            if (!result.Item1)
-            {
-                Logger.LogError(result.Item2);
-            }
-            else
-            {
-                Logger.LogInformation($"Successfully added a StickyNet to port {cfg.Port} imitating {cfg.Protocol} and logging to {cfg.OutputPath}");
-            }
-        }
-
-        private async Task RunStickyNetAsync(RunOptions options)
-        {
             var hostBuilder = Host.CreateDefaultBuilder()
                 .ConfigureServices(async (hostContext, services) =>
                 {
                     services.AddSingleton<HttpClient>();
-                    services.AddHostedService<StickyNetWorker>();
+                    services.AddHostedService<StickyNetRunner>();
                     services.AddStickyServices();
                     await services.InitializeStickyServicesAsync();
                 })

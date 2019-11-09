@@ -1,16 +1,15 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
-using StickyNet.Report;
+using StickyNet.Service;
 
 namespace StickyNet.Server.Tcp
 {
-    public class StickyTcpServer<ISession> : TcpServer, IStickyServer 
+    public class StickyTcpServer<ISession> : TcpServer, IStickyServer
         where ISession : TcpSession
     {
         private readonly ILogger Logger;
@@ -30,8 +29,8 @@ namespace StickyNet.Server.Tcp
             Logger = logger;
         }
 
-        protected override TcpSession CreateSession() 
-            => (ISession)Activator.CreateInstance(typeof(ISession), this, Config.ConnectionTimeout);
+        protected override TcpSession CreateSession()
+            => (ISession) Activator.CreateInstance(typeof(ISession), this, Config.ConnectionTimeout);
 
         protected override async void OnConnected(TcpSession session)
         {
@@ -40,12 +39,9 @@ namespace StickyNet.Server.Tcp
                 var remoteEndPoint = session.Socket.RemoteEndPoint as IPEndPoint;
                 var attempt = new ConnectionAttempt(DateTime.UtcNow, Port);
 
+                CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
                 Logger.LogInformation($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
 
-                if (Config.EnableReporting)
-                {
-                    CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
-                }
                 if (Config.EnableOutput)
                 {
                     await File.AppendAllTextAsync(Config.OutputPath, JsonSerializer.Serialize(attempt) + "\n");

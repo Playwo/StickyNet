@@ -7,7 +7,7 @@ namespace StickyNet.Server.Tcp
     {
         public Timer TimeoutTimer;
 
-        public StickyTcpSession(TcpServer server, int timeout) 
+        public StickyTcpSession(TcpServer server, int timeout)
             : base(server)
         {
             TimeoutTimer = new Timer(timeout)

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -18,9 +17,9 @@ using StickyNet.Service;
 
 namespace StickyNet
 {
-    public class StickyNetWorker : BackgroundService
+    public class StickyNetRunner : BackgroundService
     {
-        private readonly ILogger<StickyNetWorker> Logger;
+        private readonly ILogger<StickyNetRunner> Logger;
         private readonly ConfigService Configuration;
         private readonly ILoggerFactory LoggerFactory;
         private readonly HttpClient HttpClient;
@@ -30,8 +29,9 @@ namespace StickyNet
         public System.Timers.Timer ReporterTimer { get; }
         public List<IStickyServer> Servers { get; }
         public ConcurrentDictionary<IPAddress, ConcurrentBag<ConnectionAttempt>> AttemptCache { get; }
+        public StickyGlobalConfig Config => Configuration.StickyConfig;
 
-        public StickyNetWorker(ConfigService configuration, ILogger<StickyNetWorker> logger, ILoggerFactory loggerFactory, HttpClient httpClient)
+        public StickyNetRunner(ConfigService configuration, ILogger<StickyNetRunner> logger, ILoggerFactory loggerFactory, HttpClient httpClient)
         {
             Logger = logger;
             Configuration = configuration;
@@ -49,7 +49,7 @@ namespace StickyNet
         {
             Logger.LogInformation("Starting StickyNet Launcher...");
 
-            foreach (var config in Configuration.Configs)
+            foreach (var config in Configuration.ServerConfigs)
             {
                 await StartServerAsync(config);
             }
@@ -78,7 +78,7 @@ namespace StickyNet
             var ip = IPAddress.Any;
             var logger = LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]");
 
-            var server =  config.Protocol switch
+            var server = config.Protocol switch
             {
                 Protocol.None => (IStickyServer) new StickyTcpServer<NoneSession>(ip, config, logger),
                 Protocol.FTP => new StickyTcpServer<FtpSession>(ip, config, logger),
@@ -88,10 +88,7 @@ namespace StickyNet
             };
 
             Servers.Add(server);
-            if (server.Config.EnableReporting)
-            {
-                server.CatchedIpAdress += Server_CatchedIpAdress;
-            }
+            server.CatchedIpAdress += Server_CatchedIpAdress;
             server.Start();
 
             return Task.CompletedTask;
@@ -109,9 +106,9 @@ namespace StickyNet
             return Task.CompletedTask;
         }
 
-        private void Server_CatchedIpAdress(IPAddress ip, ConnectionAttempt attempt) 
+        private void Server_CatchedIpAdress(IPAddress ip, ConnectionAttempt attempt)
             => AttemptCache.AddOrUpdate(ip, x => new ConcurrentBag<ConnectionAttempt>(
-                new ConcurrentBag<ConnectionAttempt>() { attempt }), 
+                new ConcurrentBag<ConnectionAttempt>() { attempt }),
                 (ip, bag) =>
                 {
                     bag.Add(attempt);
@@ -131,11 +128,11 @@ namespace StickyNet
 
             var ipReports = new List<IpReport>();
 
-            foreach(var item in attempts)
+            foreach (var item in attempts)
             {
                 var portReports = item.Value.GroupBy(attempt => attempt.Port)
-                                            .Select(group => new PortTimeReport(group.Key, 
-                                                                                group.Select(z => z.Time), 
+                                            .Select(group => new PortTimeReport(group.Key,
+                                                                                group.Select(z => z.Time),
                                                                                 startTime))
                                             .ToArray();
 
@@ -145,13 +142,13 @@ namespace StickyNet
 
             if (ipReports.Count > 0)
             {
-                var reportPacket = new ReportPacket(, startTime, ipReports.ToArray());
+                var reportPacket = new ReportPacket(Config.ReportToken, startTime, ipReports.ToArray());
 
                 try
                 {
                     string json = JsonSerializer.Serialize(reportPacket);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
-                    var response = await HttpClient.PostAsync(server.Config.ReportServer, content);
+                    var response = await HttpClient.PostAsync(Config.ReportServer, content);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -163,7 +160,7 @@ namespace StickyNet
                     Logger.LogError(ex, "Error while reporting IPs!");
                 }
 
-                Logger.LogInformation($"Reported {ipReports.Count} IPs: \n{string.Join("\n",reportPacket.ReportedIps.AsEnumerable())}");
+                Logger.LogInformation($"Reported {ipReports.Count} IPs: \n{string.Join("\n", reportPacket.ReportedIps.AsEnumerable())}");
             }
 
             Logger.LogDebug("Finished IP Reporting");

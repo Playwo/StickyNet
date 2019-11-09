@@ -1,12 +1,12 @@
 ﻿using CommandLine;
 using Microsoft.Extensions.Logging;
 
-namespace StickyNet.Arguments
+namespace StickyNet.Options
 {
     [Verb("run", HelpText = "Run StickyNet on all configured Ports")]
     public class RunOptions
     {
-        [Option('l', "loglevel", HelpText = "The minimum log level to display", Default = LogLevel.Debug)]
+        [Option('l', "loglevel", HelpText = "The minimum log level to display", Default = LogLevel.Information)]
         public LogLevel LogLevel { get; set; }
     }
 }

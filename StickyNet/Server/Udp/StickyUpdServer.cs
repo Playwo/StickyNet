@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
-using StickyNet.Report;
+using StickyNet.Service;
 
 namespace StickyNet.Server.Udp
 {
@@ -37,12 +36,9 @@ namespace StickyNet.Server.Udp
                 var remoteEndPoint = endpoint as IPEndPoint;
                 var attempt = new ConnectionAttempt(DateTime.UtcNow, Port);
 
+                CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
                 Logger.LogInformation($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
 
-                if (Config.EnableReporting)
-                {
-                    CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
-                }
                 if (Config.EnableOutput)
                 {
                     await File.AppendAllTextAsync(Config.OutputPath, JsonSerializer.Serialize(attempt) + "\n");

@@ -26,7 +26,7 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 var service = services.Where(x => x.ServiceType == type).First().ImplementationInstance as StickyService;
 
-                var fields = type.GetFields().Where(x => x.GetCustomAttribute(typeof(InjectAttribute)) != null);
+                var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public |BindingFlags.Instance ).Where(x => x.GetCustomAttribute(typeof(InjectAttribute)) != null);
 
                 foreach (var field in fields)
                 {

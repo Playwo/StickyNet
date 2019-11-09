@@ -4,7 +4,7 @@ namespace StickyNet.Server.Tcp
 {
     public class NoneSession : StickyTcpSession
     {
-        public NoneSession(TcpServer server, int timeout) 
+        public NoneSession(TcpServer server, int timeout)
             : base(server, timeout)
         {
         }
