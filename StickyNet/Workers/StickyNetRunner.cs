@@ -111,6 +111,7 @@ namespace StickyNet
             AttemptCache.Clear();
 
             var startTime = LastReport;
+            LastReport = DateTimeOffset.UtcNow;
 
             var ipReports = new List<IpReport>();
 
