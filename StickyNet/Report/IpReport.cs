@@ -1,14 +1,14 @@
 ﻿using System.Net;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace StickyNet.Report
 {
     public class IpReport
     {
-        [JsonPropertyName("ip")]
+        [JsonProperty("ip")]
         public string Ip { get; }
 
-        [JsonPropertyName("prt")]
+        [JsonProperty("prt")]
         public PortTimeReport[] Reports { get; }
 
         public IpReport(IPAddress ip, PortTimeReport[] reports)

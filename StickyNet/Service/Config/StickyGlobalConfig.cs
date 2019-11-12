@@ -1,22 +1,35 @@
 ﻿using System;
-using System.Text.Json.Serialization;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using StickyNet.Report;
 
 namespace StickyNet.Service
 {
     public class StickyGlobalConfig
     {
-        public Uri ReportServer { get; set; } = null;
-        public string ReportToken { get; set; } = null;
+        [JsonProperty("TripLinks")]
+        private List<TripLink> TripLinkServers { get; set; } = new List<TripLink>();
 
         [JsonIgnore]
-        public bool EnableReporting => ReportServer != null;
+        public IReadOnlyList<TripLink> TripLinks => TripLinkServers.AsReadOnly();
 
-        public override bool Equals(object obj) => base.Equals(obj);
+        [JsonIgnore]
+        public bool EnableReporting => TripLinkServers.Count > 0;
 
-        public bool Equals(StickyGlobalConfig config)
-            => config.ReportServer.Equals(ReportServer) &&
-               config.ReportToken.Equals(ReportToken);
-        public override int GetHashCode()
-            => HashCode.Combine(ReportServer, ReportToken);
+        [JsonIgnore]
+        public bool IsValid => TripLinkServers != null;
+
+        public StickyGlobalConfig()
+        {
+        }
+
+        public void AddTripLink(Uri server, string token)
+        {
+            var tripLink = new TripLink(server, token);
+            TripLinkServers.Add(tripLink);
+        }
+
+        public void RemoveTripLink(Uri server) 
+            => TripLinkServers.RemoveAll(x => x.Server == server);
     }
 }

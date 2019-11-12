@@ -1,17 +1,17 @@
 ﻿using System;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace StickyNet.Report
 {
     public class ReportPacket
     {
-        [JsonPropertyName("tk")]
+        [JsonProperty("tk")]
         public string Token { get; }
 
-        [JsonPropertyName("st")]
+        [JsonProperty("st")]
         public long Timestamp { get; }
 
-        [JsonPropertyName("ips")]
+        [JsonProperty("ips")]
         public IpReport[] ReportedIps { get; }
 
         public ReportPacket(string token, DateTimeOffset starttime, IpReport[] reports)

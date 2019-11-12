@@ -2,9 +2,9 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
+using Newtonsoft.Json;
 using StickyNet.Service;
 
 namespace StickyNet.Server.Udp
@@ -41,7 +41,7 @@ namespace StickyNet.Server.Udp
 
                 if (Config.EnableOutput)
                 {
-                    await File.AppendAllTextAsync(Config.OutputPath, JsonSerializer.Serialize(attempt) + "\n");
+                    await File.AppendAllTextAsync(Config.OutputPath, JsonConvert.SerializeObject(attempt) + "\n");
                 }
 
                 await Protocol.PerformHandshakeAsync(endpoint);

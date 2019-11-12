@@ -4,22 +4,17 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Threading.Tasks;
-using System.Timers;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace StickyNet.Service
 {
-    public class ConfigService : StickyService
+    public class ConfigService
     {
-#pragma warning disable CS0649
-        [Inject] private readonly ILoggerFactory LoggerFactory;
-#pragma warning restore
+        private readonly ILogger<ConfigService> Logger;
 
-        private ILogger<ConfigService> Logger;
-
-        private Timer RefreshTimer { get; set; }
+        private System.Timers.Timer RefreshTimer { get; set; }
         private List<StickyServerConfig> Configs { get; set; }
 
         public IReadOnlyList<StickyServerConfig> ServerConfigs => Configs.AsReadOnly();
@@ -33,7 +28,7 @@ namespace StickyNet.Service
         public string GlobalConfigFilePath
             => RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
                 ? "/etc/stickynet.cfg"
-                : "/stickynet.cfg";
+                : "stickynet.cfg";
 
         public string HasChangesFile
             => Path.Combine(ConfigFolderPath, "changes.lock");
@@ -42,24 +37,25 @@ namespace StickyNet.Service
         public event Func<StickyServerConfig, Task> ServerAdded;
         public event Func<StickyServerConfig, Task> ServerRemoved;
 
-        public override async Task InitializeAsync()
+        public ConfigService(ILogger<ConfigService> logger)
         {
-            Configs = new List<StickyServerConfig>();
-            Logger = LoggerFactory.CreateLogger<ConfigService>();
-            await RefreshConfigFileAsync(true);
+            Logger = logger;
 
-            RefreshTimer = new Timer(1000)
+            Configs = new List<StickyServerConfig>();
+            RefreshTimer = new System.Timers.Timer(1000)
             {
                 AutoReset = false,
             };
             RefreshTimer.Elapsed += RefreshAsync;
+
+            RefreshConfigFileAsync(true).GetAwaiter().GetResult();
             RefreshTimer.Start();
         }
 
         public async Task MarkChangesAsync()
         {
             CreateConfigDirectory();
-            Logger.LogInformation("Creating changes file...");
+            Logger.LogInformation("Creating reload file...");
             await File.WriteAllTextAsync(HasChangesFile, "");
         }
 
@@ -74,8 +70,6 @@ namespace StickyNet.Service
                 return;
             }
 
-            File.Delete(HasChangesFile);
-
             var newGlobalConfig = await LoadGlobalConfigAsync();
 
             if (newGlobalConfig != StickyConfig)
@@ -84,19 +78,42 @@ namespace StickyNet.Service
             }
 
             var newServerConfigs = await LoadServerConfigsAsync();
-            var addedConfigs = newServerConfigs.Except(ServerConfigs);
-            var removedConfigs = ServerConfigs.Except(newServerConfigs);
+            var addedConfigs = newServerConfigs.Except(Configs);
+            var removedConfigs = Configs.Except(newServerConfigs);
 
-            foreach (var config in addedConfigs)
+            var duplicates = newServerConfigs.GroupBy(x => x.Port)
+                    .Where(x => x.Count() > 1)
+                    .ToList();
+
+            foreach (var duplicate in duplicates)
             {
-                await ServerAdded?.Invoke(config);
+                int port = duplicate.Key;
+                Logger.LogError($"There are multiple StickyNets registered for port {port}! Please remove the duplicates!");
+                Logger.LogWarning("Ignoring duplicates!");
+
+                newServerConfigs.RemoveAll(x => x.Port == port);
+                newServerConfigs.Add(duplicate.First());
             }
+
             foreach (var config in removedConfigs)
             {
-                await ServerRemoved?.Invoke(config);
+                if (ServerRemoved != null)
+                {
+                    await ServerRemoved.Invoke(config);
+                }
+            }
+            foreach (var config in addedConfigs)
+            {
+                if (ServerAdded != null)
+                {
+                    await ServerAdded.Invoke(config);
+                }
             }
 
+
             Configs = newServerConfigs.ToList();
+
+            File.Delete(HasChangesFile);
         }
 
         private async Task<StickyGlobalConfig> LoadGlobalConfigAsync()
@@ -107,7 +124,11 @@ namespace StickyNet.Service
             }
 
             string json = await File.ReadAllTextAsync(GlobalConfigFilePath);
-            return JsonSerializer.Deserialize<StickyGlobalConfig>(json);
+            var cfg = JsonConvert.DeserializeObject<StickyGlobalConfig>(json);
+
+            return cfg.IsValid
+                ? cfg
+                : new StickyGlobalConfig();
         }
         private async Task<List<StickyServerConfig>> LoadServerConfigsAsync()
         {
@@ -123,7 +144,7 @@ namespace StickyNet.Service
                 try
                 {
                     string json = await File.ReadAllTextAsync(configPath);
-                    var config = JsonSerializer.Deserialize<StickyServerConfig>(json);
+                    var config = JsonConvert.DeserializeObject<StickyServerConfig>(json);
 
                     if (!config.IsValid())
                     {
@@ -150,6 +171,18 @@ namespace StickyNet.Service
                 Directory.CreateDirectory(ConfigFolderPath);
             }
         }
+        public async Task AddReportServerAsync(Uri reportServer, string reportToken)
+        {
+            Logger.LogInformation("Adding reportserver...");
+            StickyConfig.AddTripLink(reportServer, reportToken);
+            await SaveGlobalConfigAsync();
+        }
+        public async Task RemoveReportServerAsync(Uri reportServer)
+        {
+            Logger.LogInformation("Removing reportserver...");
+            StickyConfig.RemoveTripLink(reportServer);
+            await SaveGlobalConfigAsync();
+        }
 
         public Task DeleteServerConfigAsync(StickyServerConfig config)
         {
@@ -161,14 +194,21 @@ namespace StickyNet.Service
         public async Task AddServerConfigAsync(StickyServerConfig config)
         {
             CreateConfigDirectory();
-            config.FilePath = CreateFilePath(config);
-            string json = JsonSerializer.Serialize(config);
+            config.FilePath = GenerateFilePath(config);
+            string json = JsonConvert.SerializeObject(config);
             await File.WriteAllTextAsync(config.FilePath, json);
+            Logger.LogInformation("Successfully saved config file!");
             Configs.Add(config);
-            Logger.LogInformation("Successfully created config file!");
         }
 
-        private string CreateFilePath(StickyServerConfig config)
+        private async Task SaveGlobalConfigAsync()
+        {
+            string json = JsonConvert.SerializeObject(StickyConfig);
+            await File.WriteAllTextAsync(GlobalConfigFilePath, json);
+            Logger.LogInformation("Successfully saved config file!");
+        }
+
+        private string GenerateFilePath(StickyServerConfig config)
         {
             string path = Path.Combine(ConfigFolderPath, $"{config.Port}-{config.Protocol}.cfg");
             int i = 0;

@@ -23,7 +23,6 @@ namespace StickyNet.Server.Tcp
             if (RemainingTries > 0)
             {
                 ProcessReceived(message);
-                RemainingTries--;
             }
             if (RemainingTries == 0)
             {
@@ -37,6 +36,7 @@ namespace StickyNet.Server.Tcp
             if (received.Contains("\r\n"))
             {
                 SendAsync("Invalid password!\r\n");
+                RemainingTries--;
 
                 if (received.Length > 100)
                 {

@@ -8,29 +8,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StickyNet.Options;
+using StickyNet.Service;
 using StickyNet.Workers;
 
 namespace StickyNet
 {
     public class Startup
     {
-        private readonly ILogger<Startup> Logger;
-
-        public Startup()
-        {
-            Logger = MakeLogger<Startup>();
-        }
-
-        private ILogger<T> MakeLogger<T>()
-            => LoggerFactory.Create(builder =>
-            {
-                builder.SetMinimumLevel(LogLevel.Debug);
-                builder.ClearProviders();
-                builder.AddConsole();
-                builder.AddDebug();
-            })
-            .CreateLogger<T>();
-
         public void Run(string[] args)
         {
             var parser = new Parser(x =>
@@ -44,52 +28,47 @@ namespace StickyNet
                 x.IgnoreUnknownArguments = false;
             });
 
-            var result = parser.ParseArguments<RunOptions, CreateOptions, DeleteOptions, ListOptions>(args)
+            var result = parser.ParseArguments<RunOptions, CreateOptions, DeleteOptions, ListOptions, AddTripLinkOptions, RemoveTripLinkOptions, ReloadOptions>(args)
                 .WithParsed<RunOptions>(opt => StartStickyNetRunnerAsync(opt).GetAwaiter().GetResult())
                 .WithParsed<IOption>(opt => StartStickyNetWorkerAsync(opt).GetAwaiter().GetResult());
-
-            Thread.Sleep(100); //Wait for all logs to appear
         }
 
         private async Task StartStickyNetWorkerAsync(IOption option)
         {
-            Logger.LogInformation("Starting StickyNet Worker...");
+            var host = Host.CreateDefaultBuilder()
+                .ConfigureServices((hostContext, services) =>
+                {
+                    services.Configure<ConsoleLifetimeOptions>(lifeTimeOptions => lifeTimeOptions.SuppressStatusMessages = true);
+                    services.AddSingleton(option);
+                    services.AddSingleton<ConfigService>();
+                    services.AddHostedService<StickyNetWorker>();
 
-            var hostBuilder = Host.CreateDefaultBuilder()
-                           .ConfigureServices(async (hostContext, services) =>
-                           {
-#pragma warning disable IDE0001
-                               services.AddSingleton<IOption>(option);
-#pragma warning restore
-                               services.AddHostedService<StickyNetWorker>();
-                               services.AddStickyServices();
-                               await services.InitializeStickyServicesAsync();
-                           })
-                           .ConfigureLogging(logging =>
-                           {
-                               logging.SetMinimumLevel(option.LogLevel);
-                               logging.AddConsole();
-                               logging.AddDebug();
-                           })
-                           .UseConsoleLifetime();
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(option.LogLevel);
+                    logging.AddConsole();
+                    logging.AddDebug();
+                })
+                .Build();
 
-            await hostBuilder.RunConsoleAsync();
+            await host.RunAsync();
         }
 
         private async Task StartStickyNetRunnerAsync(RunOptions options)
         {
-            Logger.LogInformation("Starting StickyNet Runner...");
-
             var hostBuilder = Host.CreateDefaultBuilder()
-                .ConfigureServices(async (hostContext, services) =>
+                .ConfigureServices((hostContext, services) =>
                 {
                     services.AddSingleton<HttpClient>();
+                    services.AddSingleton<ConfigService>();
                     services.AddHostedService<StickyNetRunner>();
-                    services.AddStickyServices();
-                    await services.InitializeStickyServicesAsync();
                 })
                 .ConfigureLogging(logging =>
                 {
+                    logging.ClearProviders();
+
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
                         logging.AddEventLog();

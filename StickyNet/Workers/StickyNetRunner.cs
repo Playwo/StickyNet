@@ -5,11 +5,11 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using StickyNet.Report;
 using StickyNet.Server;
 using StickyNet.Server.Tcp;
@@ -17,7 +17,7 @@ using StickyNet.Service;
 
 namespace StickyNet
 {
-    public class StickyNetRunner : BackgroundService
+    public class StickyNetRunner : IHostedService
     {
         private readonly ILogger<StickyNetRunner> Logger;
         private readonly ConfigService Configuration;
@@ -27,7 +27,7 @@ namespace StickyNet
         private DateTimeOffset LastReport { get; set; }
 
         public System.Timers.Timer ReporterTimer { get; }
-        public List<IStickyServer> Servers { get; }
+        public ConcurrentDictionary<int,IStickyServer> Servers { get; }
         public ConcurrentDictionary<IPAddress, ConcurrentBag<ConnectionAttempt>> AttemptCache { get; }
         public StickyGlobalConfig Config => Configuration.StickyConfig;
 
@@ -39,36 +39,11 @@ namespace StickyNet
             HttpClient = httpClient;
             LastReport = DateTimeOffset.UtcNow;
 
-            Servers = new List<IStickyServer>();
+            AttemptCache = new ConcurrentDictionary<IPAddress, ConcurrentBag<ConnectionAttempt>>();
+            Servers = new ConcurrentDictionary<int, IStickyServer>();
             ReporterTimer = new System.Timers.Timer(10000); //10 Seconds
             ReporterTimer.Elapsed += ReporterTimer_Elapsed;
             ReporterTimer.Start();
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            Logger.LogInformation("Starting StickyNet Launcher...");
-
-            foreach (var config in Configuration.ServerConfigs)
-            {
-                await StartServerAsync(config);
-            }
-
-            Configuration.ServerAdded += StartServerAsync;
-            Configuration.ServerRemoved += StopServerAsync;
-
-            var exitSource = new TaskCompletionSource<object>();
-
-            stoppingToken.Register(() => exitSource.SetResult(null));
-
-            await exitSource.Task;
-
-            Logger.LogInformation("Stopping StickyNet Launcher...");
-
-            foreach (var server in Servers)
-            {
-                await StopServerAsync(server.Config);
-            }
         }
 
         private Task StartServerAsync(StickyServerConfig config)
@@ -87,7 +62,7 @@ namespace StickyNet
                 _ => null
             };
 
-            Servers.Add(server);
+            Servers.TryAdd(server.Port,server);
             server.CatchedIpAdress += Server_CatchedIpAdress;
             server.Start();
 
@@ -96,12 +71,16 @@ namespace StickyNet
 
         private Task StopServerAsync(StickyServerConfig config)
         {
-            var server = Servers.Where(x => x.Port == config.Port).First();
+            if (!Servers.TryGetValue(config.Port, out var server))
+            {
+                return Task.CompletedTask;
+            }
+
             server.CatchedIpAdress -= Server_CatchedIpAdress;
             server.Stop();
             server.Dispose();
 
-            Servers.RemoveAll(x => x.Port == config.Port);
+            Servers.TryRemove(server.Port, out _);
 
             return Task.CompletedTask;
         }
@@ -116,7 +95,14 @@ namespace StickyNet
                 });
 
 
-        private void ReporterTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e) => _ = Task.Run(() => ReportAdressesAsync());
+        private void ReporterTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (Config.EnableReporting)
+            {
+                _ = ReportAdressesAsync();
+            }
+        }
+
         private async Task ReportAdressesAsync()
         {
             Logger.LogDebug($"Starting IP Reporting...");
@@ -140,30 +126,60 @@ namespace StickyNet
                 ipReports.Add(ipReport);
             }
 
-            if (ipReports.Count > 0)
+            if (ipReports.Count <= 0)
             {
-                var reportPacket = new ReportPacket(Config.ReportToken, startTime, ipReports.ToArray());
-
-                try
+                Logger.LogDebug("There were no IPs to report!");
+            }
+            else
+            {
+                foreach (var tripLink in Config.TripLinks)
                 {
-                    string json = JsonSerializer.Serialize(reportPacket);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-                    var response = await HttpClient.PostAsync(Config.ReportServer, content);
+                    var reportPacket = new ReportPacket(tripLink.Token, startTime, ipReports.ToArray());
 
-                    if (!response.IsSuccessStatusCode)
+                    try
                     {
-                        Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error while reporting IPs!");
-                }
+                        string json = JsonConvert.SerializeObject(reportPacket);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+                        var response = await HttpClient.PostAsync(tripLink.Server, content);
 
-                Logger.LogInformation($"Reported {ipReports.Count} IPs: \n{string.Join("\n", reportPacket.ReportedIps.AsEnumerable())}");
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error while reporting IPs!");
+                    }
+
+                    Logger.LogInformation($"Reported {ipReports.Count} IPs: \n{string.Join("\n", reportPacket.ReportedIps.AsEnumerable())}");
+                }
             }
 
             Logger.LogDebug("Finished IP Reporting");
+        }
+
+        public async Task StartAsync(CancellationToken cancellationToken)
+        {
+            Logger.LogInformation("Starting StickyNet Launcher...");
+
+            foreach (var config in Configuration.ServerConfigs)
+            {
+                await StartServerAsync(config);
+            }
+
+            Configuration.ServerAdded += StartServerAsync;
+            Configuration.ServerRemoved += StopServerAsync;
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken)
+        {
+            Logger.LogInformation("Stopping StickyNet Launcher...");
+
+            foreach (var server in Servers.Select(x => x.Value))
+            {
+                await StopServerAsync(server.Config);
+            }
         }
     }
 }

@@ -1,20 +1,20 @@
-﻿using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
 using StickyNet.Server;
 
 namespace StickyNet.Service
 {
     public class StickyServerConfig
     {
-        [JsonIgnore]
-        public string FilePath { get; set; }
-
         public int Port { get; set; }
         public Protocol Protocol { get; set; } = Protocol.None;
         public string OutputPath { get; set; } = null;
+        public int ConnectionTimeout { get; set; } = 5000;
+
+        [JsonIgnore]
+        public string FilePath { get; set; }
 
         [JsonIgnore]
         public bool EnableOutput => OutputPath != null;
-        public int ConnectionTimeout { get; set; } = 5000;
 
         public StickyServerConfig(int port, Protocol protocol,
             string outputPath, int connectionTimeout)
