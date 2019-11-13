@@ -70,6 +70,8 @@ namespace StickyNet.Service
                 return;
             }
 
+            Logger.LogInformation("Reloading config...");
+
             var newGlobalConfig = await LoadGlobalConfigAsync();
 
             if (newGlobalConfig != StickyConfig)
