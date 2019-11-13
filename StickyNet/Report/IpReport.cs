@@ -17,6 +17,6 @@ namespace StickyNet.Report
             Reports = reports;
         }
 
-        public override string ToString() => $"{Ip} [{Reports.Length + 1}]";
+        public override string ToString() => $"{Ip} [{Reports.Length}]";
     }
 }
