@@ -12,8 +12,8 @@ namespace StickyNet.Server.Tcp
         {
         }
 
-        protected override void OnConnected() => SendAsync("Welcome to Telnet! Please authenticate!\r\n");
-        protected override void OnTimeouted() => SendAsync("Timeouted...\r\n");
+        protected override void OnConnected() => SendAsync("Welcome to Telnet! Please authenticate!\r\r\n");
+        protected override void OnTimeouted() => SendAsync("Timeouted...\r\r\n");
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
             ResetTimeout();
@@ -26,21 +26,21 @@ namespace StickyNet.Server.Tcp
             }
             if (RemainingTries == 0)
             {
-                SendAsync("Out of authentication tries!\r\n");
+                SendAsync("Out of authentication tries!\r\r\n");
                 Disconnect();
             }
         }
 
         private void ProcessReceived(string received)
         {
-            if (received.Contains("\r\n"))
+            if (received.Contains("\r\r\n"))
             {
-                SendAsync("Invalid password!\r\n");
+                SendAsync("Invalid password!\r\r\n");
                 RemainingTries--;
 
                 if (received.Length > 100)
                 {
-                    SendAsync("Exceeded maximum!\r\n");
+                    SendAsync("Exceeded maximum!\r\r\n");
                     Disconnect();
                 }
             }

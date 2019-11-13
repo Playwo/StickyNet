@@ -41,7 +41,7 @@ namespace StickyNet.Server.Udp
 
                 if (Config.EnableOutput)
                 {
-                    await File.AppendAllTextAsync(Config.OutputPath, JsonConvert.SerializeObject(attempt) + "\n");
+                    await File.AppendAllTextAsync(Config.OutputPath, JsonConvert.SerializeObject(attempt) + "\r\n");
                 }
 
                 await Protocol.PerformHandshakeAsync(endpoint);

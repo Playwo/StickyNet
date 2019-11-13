@@ -190,7 +190,7 @@ namespace StickyNet.Service
         {
             File.Delete(config.FilePath);
             Configs.Remove(config);
-            Logger.LogInformation($"Removed the following StickyNet:\n{config}");
+            Logger.LogInformation($"Removed the following StickyNet:\r\n{config}");
             return Task.CompletedTask;
         }
         public async Task AddServerConfigAsync(StickyServerConfig config)
