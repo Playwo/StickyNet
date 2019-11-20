@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using Newtonsoft.Json;
 
 namespace StickyNet.Report
@@ -9,14 +11,15 @@ namespace StickyNet.Report
         public string Ip { get; }
 
         [JsonProperty("prt")]
-        public PortTimeReport[] Reports { get; }
+        public IReadOnlyList<PortTimeReport> Reports { get; }
 
-        public IpReport(IPAddress ip, PortTimeReport[] reports)
+        public IpReport(IPAddress ip, IEnumerable<PortTimeReport> reports)
         {
             Ip = ip.ToString();
-            Reports = reports;
+            Reports = reports.ToList().AsReadOnly();
         }
 
-        public override string ToString() => $"{Ip} [{Reports.Length}]";
+        public override string ToString()
+            => $"{Ip} [{Reports.Sum(x => x.RelativeTimestamps.Count)}R | {Reports.Count}P]";
     }
 }

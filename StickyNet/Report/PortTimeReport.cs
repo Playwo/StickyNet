@@ -11,12 +11,12 @@ namespace StickyNet.Report
         public int Port { get; }
 
         [JsonProperty("t")]
-        public int[] RelativeTimestamps { get; }
+        public IReadOnlyList<int> RelativeTimestamps { get; }
 
         public PortTimeReport(int port, IEnumerable<DateTimeOffset> timestamps, DateTimeOffset startTime)
         {
             Port = port;
-            RelativeTimestamps = timestamps.Select(timestamp => (int) (startTime - timestamp).TotalSeconds).ToArray();
+            RelativeTimestamps = timestamps.Select(t => (int) (startTime - t).TotalSeconds).ToList().AsReadOnly();
         }
     }
 }
