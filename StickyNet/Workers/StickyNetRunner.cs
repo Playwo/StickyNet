@@ -153,7 +153,7 @@ namespace StickyNet
                         Logger.LogError(ex, "Error while reporting IPs!");
                     }
 
-                    Logger.LogInformation($"Reported {ipReports.Count} IPs: \r\n{string.Join("\r\n", reportPacket.ReportedIps.AsEnumerable())}");
+                    Logger.LogInformation($"Reported {ipReports.Count} IPs: {string.Join("; ", reportPacket.ReportedIps.AsEnumerable())}");
                 }
             }
 
