@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -90,7 +89,7 @@ namespace StickyNet.Workers
 
             Logger.LogInformation($"There are {Configuration.StickyConfig.TripLinks.Count} TripLink servers registered in the config:");
 
-            foreach(var tripLinkServer in Configuration.StickyConfig.TripLinks)
+            foreach (var tripLinkServer in Configuration.StickyConfig.TripLinks)
             {
                 Logger.LogInformation($" => TripLink Address: {tripLinkServer.Server}, Token: {tripLinkServer.Token}");
             }
@@ -100,7 +99,7 @@ namespace StickyNet.Workers
 
         private async Task AddTripLinkAsync(AddTripLinkOptions options)
         {
-            if(!Uri.TryCreate(options.ReportServer, UriKind.Absolute, out var url) || 
+            if (!Uri.TryCreate(options.ReportServer, UriKind.Absolute, out var url) ||
                 (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps))
             {
                 Logger.LogError("The report server address is not valid!");

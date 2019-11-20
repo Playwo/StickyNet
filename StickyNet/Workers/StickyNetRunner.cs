@@ -27,7 +27,7 @@ namespace StickyNet
         private DateTimeOffset LastReport { get; set; }
 
         public System.Timers.Timer ReporterTimer { get; }
-        public ConcurrentDictionary<int,IStickyServer> Servers { get; }
+        public ConcurrentDictionary<int, IStickyServer> Servers { get; }
         public ConcurrentDictionary<IPAddress, ConcurrentBag<ConnectionAttempt>> AttemptCache { get; }
         public StickyGlobalConfig Config => Configuration.StickyConfig;
 
@@ -62,7 +62,7 @@ namespace StickyNet
                 _ => null
             };
 
-            Servers.TryAdd(server.Port,server);
+            Servers.TryAdd(server.Port, server);
             server.CatchedIpAdress += Server_CatchedIpAdress;
             server.Start();
 

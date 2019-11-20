@@ -29,7 +29,7 @@ namespace StickyNet.Service
             TripLinkServers.Add(tripLink);
         }
 
-        public void RemoveTripLink(Uri server) 
+        public void RemoveTripLink(Uri server)
             => TripLinkServers.RemoveAll(x => x.Server == server);
     }
 }

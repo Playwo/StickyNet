@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net;
-using System.Runtime.CompilerServices;
 using StickyNet.Service;
 
 namespace StickyNet.Server
