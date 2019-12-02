@@ -111,7 +111,6 @@ namespace StickyNet
             AttemptCache.Clear();
 
             var startTime = LastReport;
-            LastReport = DateTimeOffset.UtcNow;
 
             var ipReports = new List<IpReport>();
 
@@ -130,33 +129,35 @@ namespace StickyNet
             if (ipReports.Count <= 0)
             {
                 Logger.LogDebug("There were no IPs to report!");
+                return;
             }
-            else
+
+            foreach (var tripLink in Config.TripLinks)
             {
-                foreach (var tripLink in Config.TripLinks)
+                var reportPacket = new ReportPacket(tripLink.Token, startTime, ipReports.ToArray());
+
+                try
                 {
-                    var reportPacket = new ReportPacket(tripLink.Token, startTime, ipReports.ToArray());
+                    var response = await reportPacket.SendAsync(HttpClient, tripLink);
 
-                    try
+                    if (!response.IsSuccessStatusCode)
                     {
-                        string json = JsonConvert.SerializeObject(reportPacket);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-                        var response = await HttpClient.PostAsync(tripLink.Server, content);
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "Error while reporting IPs!");
+                        Logger.LogError($"{response.StatusCode} : {response.ReasonPhrase}");
+                        return;
                     }
 
                     Logger.LogInformation($"Reported {ipReports.Count} IPs: {string.Join("; ", reportPacket.ReportedIps.AsEnumerable())}");
+
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error while reporting IPs!");
+                    return;
                 }
             }
 
+
+            LastReport = DateTimeOffset.UtcNow;
             Logger.LogDebug("Finished IP Reporting");
         }
 
