@@ -8,5 +8,8 @@ namespace StickyNet.Server.Tcp
             : base(server, timeout)
         {
         }
+
+        protected override void OnConnected() 
+            => Send("You have been caught!");
     }
 }
