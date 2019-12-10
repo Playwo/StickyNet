@@ -197,7 +197,7 @@ namespace StickyNet.Service
         {
             CreateConfigDirectory();
             config.FilePath = GenerateFilePath(config);
-            string json = JsonConvert.SerializeObject(config);
+            string json = JsonConvert.SerializeObject(config, Formatting.Indented);
             await File.WriteAllTextAsync(config.FilePath, json);
             Logger.LogInformation("Successfully saved config file!");
             Configs.Add(config);
@@ -205,7 +205,7 @@ namespace StickyNet.Service
 
         private async Task SaveGlobalConfigAsync()
         {
-            string json = JsonConvert.SerializeObject(StickyConfig);
+            string json = JsonConvert.SerializeObject(StickyConfig, Formatting.Indented);
             await File.WriteAllTextAsync(GlobalConfigFilePath, json);
             Logger.LogInformation("Successfully saved config file!");
         }
