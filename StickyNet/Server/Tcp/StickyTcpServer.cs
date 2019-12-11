@@ -34,6 +34,8 @@ namespace StickyNet.Server.Tcp
 
         protected override async void OnConnected(TcpSession session)
         {
+            Logger.LogTrace("Opening new TCP connection...");
+
             try
             {
                 var remoteEndPoint = session.Socket.RemoteEndPoint as IPEndPoint;

@@ -31,6 +31,8 @@ namespace StickyNet.Server.Udp
 
         protected override async void OnReceived(EndPoint endpoint, byte[] buffer, long offset, long size)
         {
+            Logger.LogTrace("Opening new UDP connection...");
+
             try
             {
                 var remoteEndPoint = endpoint as IPEndPoint;
