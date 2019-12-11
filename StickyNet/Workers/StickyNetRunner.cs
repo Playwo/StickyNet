@@ -86,14 +86,17 @@ namespace StickyNet
         }
 
         private void Server_CatchedIpAdress(IPAddress ip, ConnectionAttempt attempt)
-            => AttemptCache.AddOrUpdate(ip, x => new ConcurrentBag<ConnectionAttempt>(
-                new ConcurrentBag<ConnectionAttempt>() { attempt }),
-                (ip, bag) =>
-                {
-                    bag.Add(attempt);
-                    return bag;
-                });
+        {
+            Logger.LogDebug($"Catched {ip}");
 
+            AttemptCache.AddOrUpdate(ip, x => new ConcurrentBag<ConnectionAttempt>(
+                           new ConcurrentBag<ConnectionAttempt>() { attempt }),
+                           (ip, bag) =>
+                           {
+                               bag.Add(attempt);
+                               return bag;
+                           });
+        }
 
         private void ReporterTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {

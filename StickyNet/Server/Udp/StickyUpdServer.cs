@@ -37,7 +37,6 @@ namespace StickyNet.Server.Udp
                 var attempt = new ConnectionAttempt(DateTime.UtcNow, Port);
 
                 CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
-                Logger.LogDebug($"Catched someone: {remoteEndPoint.Address}:{remoteEndPoint.Port}");
 
                 if (Config.EnableOutput)
                 {
