@@ -108,7 +108,7 @@ namespace StickyNet
 
         private async Task ReportAdressesAsync()
         {
-            Logger.LogDebug($"Starting IP Reporting...");
+            Logger.LogTrace($"Starting IP Reporting...");
 
             var attempts = AttemptCache.ToList();
             AttemptCache.Clear();
@@ -131,7 +131,7 @@ namespace StickyNet
 
             if (ipReports.Count <= 0)
             {
-                Logger.LogDebug("There were no IPs to report!");
+                Logger.LogTrace("There were no IPs to report!");
                 return;
             }
 
@@ -161,7 +161,7 @@ namespace StickyNet
 
 
             LastReport = DateTimeOffset.UtcNow;
-            Logger.LogDebug("Finished IP Reporting");
+            Logger.LogTrace("Finished IP Reporting");
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
