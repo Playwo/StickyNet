@@ -1,5 +1,5 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
+using System.Threading.Channels;
 using StickyNet.Service;
 
 namespace StickyNet.Server
@@ -10,7 +10,7 @@ namespace StickyNet.Server
         public int Port { get; }
         public StickyServerConfig Config { get; }
 
-        public event Action<IPAddress, ConnectionAttempt> CatchedIpAdress;
+        public ChannelWriter<ConnectionAttempt> AttemptWriter { get; }
 
         public bool Start();
         public bool Stop();

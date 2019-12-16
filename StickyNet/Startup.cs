@@ -62,6 +62,7 @@ namespace StickyNet
                 {
                     services.AddSingleton<HttpClient>();
                     services.AddSingleton<ConfigService>();
+                    services.AddSingleton<ReportService>();
                     services.AddHostedService<StickyNetRunner>();
                 })
                 .ConfigureLogging(logging =>

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
 using Newtonsoft.Json;
@@ -11,21 +12,20 @@ namespace StickyNet.Server.Udp
 {
     public class StickyUpdServer : UdpServer, IStickyServer
     {
+        public StickyServerConfig Config { get; }
+        public ChannelWriter<ConnectionAttempt> AttemptWriter { get; }
         private readonly ILogger Logger;
 
-        public event Action<IPAddress, ConnectionAttempt> CatchedIpAdress;
-
-        public StickyServerConfig Config { get; }
         public IUdpProtocol Protocol { get; }
-
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
 
-        public StickyUpdServer(IPAddress address, StickyServerConfig config, IUdpProtocol protocol, ILogger logger)
+        public StickyUpdServer(IPAddress address, StickyServerConfig config, IUdpProtocol protocol, ChannelWriter<ConnectionAttempt> attemptWriter, ILogger logger)
             : base(address, config.Port)
         {
             Config = config;
             Protocol = protocol;
+            AttemptWriter = attemptWriter;
             Logger = logger;
         }
 
@@ -35,10 +35,12 @@ namespace StickyNet.Server.Udp
 
             try
             {
-                var remoteEndPoint = endpoint as IPEndPoint;
-                var attempt = new ConnectionAttempt(DateTime.UtcNow, Port);
+                var remote = endpoint as IPEndPoint;
+                var attempt = new ConnectionAttempt(remote.Address, DateTime.UtcNow, Port);
 
-                CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
+                await AttemptWriter.WriteAsync(attempt);
+
+                Logger.LogInformation($"Catched {remote.Address}");
 
                 if (Config.EnableOutput)
                 {

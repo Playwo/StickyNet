@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using NetCoreServer;
 using Newtonsoft.Json;
@@ -12,20 +13,18 @@ namespace StickyNet.Server.Tcp
     public class StickyTcpServer<ISession> : TcpServer, IStickyServer
         where ISession : TcpSession
     {
-        private readonly ILogger Logger;
-
-        public event Action<IPAddress, ConnectionAttempt> CatchedIpAdress;
-
         public StickyServerConfig Config { get; }
+        public ChannelWriter<ConnectionAttempt> AttemptWriter { get; }
+        private readonly ILogger Logger;
 
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
 
-
-        public StickyTcpServer(IPAddress address, StickyServerConfig config, ILogger logger)
+        public StickyTcpServer(IPAddress address, StickyServerConfig config, ChannelWriter<ConnectionAttempt> attemptWriter, ILogger logger)
             : base(address, config.Port)
         {
             Config = config;
+            AttemptWriter = attemptWriter;
             Logger = logger;
         }
 
@@ -38,10 +37,12 @@ namespace StickyNet.Server.Tcp
 
             try
             {
-                var remoteEndPoint = session.Socket.RemoteEndPoint as IPEndPoint;
-                var attempt = new ConnectionAttempt(DateTime.UtcNow, Port);
+                var remote = session.Socket.RemoteEndPoint as IPEndPoint;
+                var attempt = new ConnectionAttempt(remote.Address, DateTime.UtcNow, Port);
 
-                CatchedIpAdress?.Invoke(remoteEndPoint.Address, attempt);
+                await AttemptWriter.WriteAsync(attempt);
+
+                Logger.LogInformation($"Catched {remote.Address}");
 
                 if (Config.EnableOutput)
                 {

@@ -9,7 +9,7 @@ namespace StickyNet.Server.Tcp
         {
         }
 
-        protected override void OnConnected() 
+        protected override void OnConnected()
             => Send("You have been caught!");
     }
 }
