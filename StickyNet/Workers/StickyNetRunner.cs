@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -20,8 +21,7 @@ namespace StickyNet
         private readonly ReportService Reporter;
 
         public ConcurrentDictionary<int, IStickyServer> Servers { get; }
-
-        public Channel<ConnectionAttempt> ConnectionAttempts { get; }
+        
         public StickyGlobalConfig Config => Configuration.StickyConfig;
 
         public StickyNetRunner(ConfigService configuration, ILogger<StickyNetRunner> logger, ILoggerFactory loggerFactory, ReportService reporter)
@@ -30,10 +30,34 @@ namespace StickyNet
             Configuration = configuration;
             LoggerFactory = loggerFactory;
             Reporter = reporter;
-
-            ConnectionAttempts = Channel.CreateUnbounded<ConnectionAttempt>(new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false });
-
             Servers = new ConcurrentDictionary<int, IStickyServer>();
+        }
+
+        public async Task StartAsync(CancellationToken cancellationToken)
+        {
+            Logger.LogInformation("Starting StickyNet Launcher...");
+
+            foreach (var config in Configuration.ServerConfigs)
+            {
+                await StartServerAsync(config);
+            }
+
+            Configuration.ServerAdded += StartServerAsync;
+            Configuration.ServerRemoved += StopServerAsync;
+
+            Reporter.StartReporter();
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken)
+        {
+            Logger.LogInformation("Stopping StickyNet Launcher...");
+
+            foreach (var server in Servers.Select(x => x.Value))
+            {
+                await StopServerAsync(server.Config);
+            }
+
+            Reporter.StopReporter();
         }
 
         private Task StartServerAsync(StickyServerConfig config)
@@ -42,14 +66,13 @@ namespace StickyNet
 
             var ip = IPAddress.Any;
             var logger = LoggerFactory.CreateLogger($"StickyNet Port{config.Port} [{config.Protocol}]");
-            var writer = ConnectionAttempts.Writer;
 
             var server = config.Protocol switch
             {
-                Protocol.None => (IStickyServer) new StickyTcpServer<NoneSession>(ip, config, writer, logger),
-                Protocol.FTP => new StickyTcpServer<FtpSession>(ip, config, writer, logger),
-                Protocol.SSH => new StickyTcpServer<SshSession>(ip, config, writer, logger),
-                Protocol.Telnet => new StickyTcpServer<TelnetSession>(ip, config, writer, logger),
+                Protocol.None => (IStickyServer) new StickyTcpServer<NoneSession>(ip, config, Reporter, logger),
+                Protocol.FTP => new StickyTcpServer<FtpSession>(ip, config, Reporter, logger),
+                Protocol.SSH => new StickyTcpServer<SshSession>(ip, config, Reporter, logger),
+                Protocol.Telnet => new StickyTcpServer<TelnetSession>(ip, config, Reporter, logger),
                 _ => null
             };
 
@@ -72,33 +95,6 @@ namespace StickyNet
             Servers.TryRemove(server.Port, out _);
 
             return Task.CompletedTask;
-        }
-
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            Logger.LogInformation("Starting StickyNet Launcher...");
-
-            foreach (var config in Configuration.ServerConfigs)
-            {
-                await StartServerAsync(config);
-            }
-
-            Configuration.ServerAdded += StartServerAsync;
-            Configuration.ServerRemoved += StopServerAsync;
-
-            _ = Task.Run(() => Reporter.StartReporterAsync(ConnectionAttempts.Reader));
-        }
-
-        public async Task StopAsync(CancellationToken cancellationToken)
-        {
-            Logger.LogInformation("Stopping StickyNet Launcher...");
-
-            foreach (var server in Servers.Select(x => x.Value))
-            {
-                await StopServerAsync(server.Config);
-            }
-
-            Reporter.StopReporter();
         }
     }
 }

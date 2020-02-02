@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
+using System.Timers;
 using Microsoft.Extensions.Logging;
 using StickyNet.Report;
 using StickyNet.Server;
@@ -19,7 +19,10 @@ namespace StickyNet.Service
         private readonly ILogger<ReportService> Logger;
 
         private readonly CancellationTokenSource ReporterStopper;
+        private readonly System.Timers.Timer ReportTimer;
 
+        private readonly ConcurrentDictionary<IPAddress, ConcurrentDictionary<int, ConcurrentBag<DateTimeOffset>>> Attempts;
+        private readonly object AttemptsLock;
         public DateTimeOffset LastReport { get; private set; }
 
         public ReportService(HttpClient client, ConfigService config, ILogger<ReportService> logger)
@@ -28,53 +31,89 @@ namespace StickyNet.Service
             Config = config;
             Logger = logger;
 
+            Attempts = new ConcurrentDictionary<IPAddress, ConcurrentDictionary<int, ConcurrentBag<DateTimeOffset>>>();
+            AttemptsLock = new object();
             ReporterStopper = new CancellationTokenSource();
+
+            ReportTimer = new System.Timers.Timer()
+            {
+                AutoReset = false,
+                Interval = 10000,
+            };
+
+            ReportTimer.Elapsed += StartReportAsync;
         }
 
-        public async Task StartReporterAsync(ChannelReader<ConnectionAttempt> attemptReader)
+        private async void StartReportAsync(object s, ElapsedEventArgs e)
         {
-            while (true)
+            if (!Config.HasTripLinks)
             {
-                LastReport = DateTimeOffset.UtcNow;
-                await attemptReader.WaitToReadAsync(ReporterStopper.Token); //Wait until data is there to prevent empty reports
-                await Task.Delay(10000, ReporterStopper.Token); //Wait 10 seconds to stack up some data for a batch
-                var attempts = new Dictionary<IPAddress, List<ConnectionAttempt>>();
-
-                while (attemptReader.TryRead(out var attempt)) //Load all attempts that stacked up in the last 10 seconds
-                {
-                    if (!attempts.TryAdd(attempt.IP, new List<ConnectionAttempt>() { attempt }))
-                    {
-                        attempts[attempt.IP].Add(attempt); //Order them by IP
-                    }
-                }
-
-                Logger.LogTrace($"Starting IP Reporting...");
-
-                var startTime = LastReport;
-                var ipReports = new List<IpReport>();
-
-                foreach (var item in attempts) //Order the data for a report Package
-                {
-                    var portReports = item.Value.GroupBy(attempt => attempt.Port)
-                                                .Select(group => new PortTimeReport(group.Key,
-                                                                                    group.Select(z => z.Time),
-                                                                                    startTime));
-
-                    var ipReport = new IpReport(item.Key, portReports);
-                    ipReports.Add(ipReport);
-                }
-
-                var packet = new ReportPacket(LastReport, ipReports);
-                await ReportAsync(packet, ReporterStopper.Token);
-
-                Logger.LogTrace("Finished IP Reporting");
+                ReportTimer.Start();
+                return;
             }
+
+            Logger.LogTrace($"Starting IP Reporting...");
+
+            var reportTime = DateTime.UtcNow;
+
+            var ipReports = Attempts.Select(x => new IpReport(x.Key, x.Value.Select(x => new PortTimeReport(x.Key, x.Value, reportTime)))).ToList();
+            Attempts.Clear();
+
+            var packet = new ReportPacket(reportTime, ipReports);
+            await SendReportAsync(packet, ReporterStopper.Token);
+
+            Logger.LogTrace("Finished IP Reporting");
+
+            LastReport = reportTime;
+            ReportTimer.Start();
+        }
+
+        public void StartReporter()
+        {
+            if (!Config.HasTripLinks)
+            {
+                Logger.LogWarning("There are no TripLinks configured! => Your catches are not reported to a server!");
+            }
+
+            ReportTimer.Start();
         }
 
         public void StopReporter()
-            => ReporterStopper.Cancel();
+        {
+            ReporterStopper.Cancel();
+            ReportTimer.Stop();
+        }
 
-        public async Task ReportAsync(ReportPacket packet, CancellationToken cancellationToken)
+        public void Report(ConnectionAttempt attempt)
+        {
+            if (!Config.HasTripLinks)
+            {
+                return;
+            }
+
+            Attempts.AddOrUpdate(attempt.IP, (ip) =>
+            {
+                var newDict = new ConcurrentDictionary<int, ConcurrentBag<DateTimeOffset>>();
+                newDict.TryAdd(attempt.Port, new ConcurrentBag<DateTimeOffset>() { attempt.Time });
+                return newDict;
+            },
+            (ip, innerDict) =>
+            {
+                innerDict.AddOrUpdate(attempt.Port,
+                    (port) =>
+                    {
+                        return new ConcurrentBag<DateTimeOffset>() { attempt.Time };
+                    },
+                    (port, bag) =>
+                    {
+                        bag.Add(attempt.Time);
+                        return bag;
+                    });
+                return innerDict;
+            });
+        }
+
+        private async Task SendReportAsync(ReportPacket packet, CancellationToken cancellationToken)
         {
             int successfulReports = 0;
 

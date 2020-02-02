@@ -13,18 +13,18 @@ namespace StickyNet.Server.Tcp
     public class StickyTcpServer<ISession> : TcpServer, IStickyServer
         where ISession : TcpSession
     {
-        public StickyServerConfig Config { get; }
-        public ChannelWriter<ConnectionAttempt> AttemptWriter { get; }
+        private readonly ReportService Reporter;
         private readonly ILogger Logger;
 
+        public StickyServerConfig Config { get; }
         public EndPoint EndPoint => Endpoint;
         public int Port => (EndPoint as IPEndPoint).Port;
 
-        public StickyTcpServer(IPAddress address, StickyServerConfig config, ChannelWriter<ConnectionAttempt> attemptWriter, ILogger logger)
+        public StickyTcpServer(IPAddress address, StickyServerConfig config, ReportService reporter, ILogger logger)
             : base(address, config.Port)
         {
             Config = config;
-            AttemptWriter = attemptWriter;
+            Reporter = reporter;
             Logger = logger;
         }
 
@@ -40,7 +40,7 @@ namespace StickyNet.Server.Tcp
                 var remote = session.Socket.RemoteEndPoint as IPEndPoint;
                 var attempt = new ConnectionAttempt(remote.Address, DateTime.UtcNow, Port);
 
-                await AttemptWriter.WriteAsync(attempt);
+                Reporter.Report(attempt);
 
                 Logger.LogInformation($"Catched {remote.Address}");
 

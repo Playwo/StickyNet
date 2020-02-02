@@ -10,8 +10,6 @@ namespace StickyNet.Server
         public int Port { get; }
         public StickyServerConfig Config { get; }
 
-        public ChannelWriter<ConnectionAttempt> AttemptWriter { get; }
-
         public bool Start();
         public bool Stop();
 

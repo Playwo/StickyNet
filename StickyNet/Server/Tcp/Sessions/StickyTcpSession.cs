@@ -12,9 +12,9 @@ namespace StickyNet.Server.Tcp
         {
             TimeoutTimer = new Timer(timeout)
             {
-                AutoReset = true,
+                AutoReset = false,
             };
-            TimeoutTimer.Elapsed += (s, a) => { OnTimeouted(); Disconnect(); };
+            TimeoutTimer.Elapsed += PerformTimeout;
             TimeoutTimer.Start();
         }
 
@@ -23,6 +23,22 @@ namespace StickyNet.Server.Tcp
             TimeoutTimer.Stop();
             TimeoutTimer.Start();
         }
+
+        private void PerformTimeout(object s, ElapsedEventArgs e)
+        {
+            try
+            {
+                OnTimeouted();
+            }
+            finally
+            {
+                Disconnect();
+                TimeoutTimer.Dispose();
+            }
+        }
+
+        protected override void OnDisconnected() 
+            => TimeoutTimer.Dispose();
 
         protected virtual void OnTimeouted()
         {

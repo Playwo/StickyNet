@@ -18,6 +18,8 @@ namespace StickyNet.Service
         private List<StickyServerConfig> Configs { get; set; }
 
         public IReadOnlyList<StickyServerConfig> ServerConfigs => Configs.AsReadOnly();
+        public bool HasTripLinks => StickyConfig.TripLinks.Any();
+
         public StickyGlobalConfig StickyConfig { get; private set; }
 
         public string ConfigFolderPath
