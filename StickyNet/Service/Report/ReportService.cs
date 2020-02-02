@@ -46,8 +46,9 @@ namespace StickyNet.Service
 
         private async void StartReportAsync(object s, ElapsedEventArgs e)
         {
-            if (!Config.HasTripLinks)
+            if (!Config.HasTripLinks || Attempts.Count == 0)
             {
+                Attempts.Clear();
                 ReportTimer.Start();
                 return;
             }
